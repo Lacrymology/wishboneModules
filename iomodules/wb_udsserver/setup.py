@@ -40,7 +40,7 @@ except IOError:
     long_description = ''
 
 setup(
-    name='wb_broker',
+    name='wb_udsserver',
     version="0.1",
     description="A Wishbone IO module which accepts external input from a unix domain socket.",
     author="Jelle Smet",
@@ -48,6 +48,6 @@ setup(
     include_package_data=True,
     entry_points="""
         [wishbone.iomodule]
-        UDSServer=wb_broker.broker:UDSServer
+        UDSServer=wb_udsserver.udsserver:UDSServer
     """
 )
