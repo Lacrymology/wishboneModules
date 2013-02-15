@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  setup.py
+#  log.py
 #  
 #  Copyright 2013 Jelle Smet <development@smetj.net>
 #  
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 3 of the License, or
+#  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
 #  
 #  This program is distributed in the hope that it will be useful,
@@ -22,32 +22,12 @@
 #  
 #  
 
-PROJECT = 'wb_logging'
+import logging
 
-VERSION = '0.1'
-
-
-from setuptools import setup, find_packages
-
-from distutils.util import convert_path
-from fnmatch import fnmatchcase
-import os
-import sys
-
-try:
-    long_description = open('README.md', 'rt').read()
-except IOError:
-    long_description = ''
-
-setup(
-    name='wb_logging',
-    version="0.1",
-    description="A Wishbone metrics module which logs Wishbone produced metrics to logging.",
-    author="Jelle Smet",
-    packages=find_packages(),
-    include_package_data=True,
-    entry_points="""
-        [wishbone.metrics]
-        Logging=wb_logging.logging:Logging
-    """
-)
+class Log():
+    def __init__(self):
+        self.logging = logging.getLogger( 'Metrics module Log' )
+        self.logging.info("Initiated")
+    
+    def do(self,data):
+        self.logging.info(str(data))

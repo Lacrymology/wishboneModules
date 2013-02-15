@@ -24,4 +24,4 @@
 
 __version__= "0.1"
 
-from logging import Logging
+from log import Log

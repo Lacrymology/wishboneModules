@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  logging.py
+#  setup.py
 #  
 #  Copyright 2013 Jelle Smet <development@smetj.net>
 #  
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
+#  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
 #  
 #  This program is distributed in the hope that it will be useful,
@@ -22,16 +22,32 @@
 #  
 #  
 
-import logging
-from wishbone.toolkit import Block
-from gevent import sleep
+PROJECT = 'wb_table'
+
+VERSION = '0.1'
 
 
-class Logging():
-    def __init__(self, callback, interval=10):
-        self.logging = logging.getLogger( 'Metrics module Logger' )
-        self.logging.info("Initiated")
-    
-    def run(self):
-        while self.block() == True:
-            sleep(10)
+from setuptools import setup, find_packages
+
+from distutils.util import convert_path
+from fnmatch import fnmatchcase
+import os
+import sys
+
+try:
+    long_description = open('README.md', 'rt').read()
+except IOError:
+    long_description = ''
+
+setup(
+    name='wb_table',
+    version="0.1",
+    description="A Wishbone metrics module which logs Wishbone produced metrics to a table.",
+    author="Jelle Smet",
+    packages=find_packages(),
+    include_package_data=True,
+    entry_points="""
+        [wishbone.metrics]
+        Table=wb_table.table:Table
+    """
+)
