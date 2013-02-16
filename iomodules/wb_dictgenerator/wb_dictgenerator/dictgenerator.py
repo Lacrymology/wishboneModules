@@ -28,7 +28,7 @@ from wishbone.toolkit import QueueFunctions, Block
 from gevent import Greenlet
 from gevent.queue import Queue
 
-class InputGenerator(Greenlet, QueueFunctions, Block):
+class DictGenerator(Greenlet, QueueFunctions, Block):
     '''**A WishBone IO module which generates dictionaries build out of words randomly
     chosen from a provided wordlist.**
     
