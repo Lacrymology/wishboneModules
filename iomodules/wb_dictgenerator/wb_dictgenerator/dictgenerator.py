@@ -85,9 +85,10 @@ class DictGenerator(Greenlet, QueueFunctions, Block):
         self.logging.info('Started')
         while self.block() == True:
             data={}
-            for x in xrange(self.min_elements,self.max_elements):
+            for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
             self.putData({"header":{},"data":data},'inbox')
+            self.key_number=-1
             sleep(0)
     
     def readWordList(self, filename):
@@ -108,7 +109,7 @@ class DictGenerator(Greenlet, QueueFunctions, Block):
     def generateKeyNumber(self):
         '''Generates a key by incrementing integer.'''
         self.key_number +=1
-        return self.key_number
+        return str(self.key_number)
         
     def shutdown(self):
         self.logging.info('Shutdown')
