@@ -25,7 +25,7 @@
 import logging
 from random import choice, uniform, randint
 from wishbone.toolkit import QueueFunctions, Block
-from gevent import Greenlet
+from gevent import Greenlet, sleep
 from gevent.queue import Queue
 
 class DictGenerator(Greenlet, QueueFunctions, Block):
@@ -67,7 +67,7 @@ class DictGenerator(Greenlet, QueueFunctions, Block):
         self.num_values_max=num_values_max
         self.min_elements=min_elements
         self.max_elements=max_elements        
-        self.wordlist=readWordList(self.filename)
+        self.wordlist=self.readWordList(self.filename)
         
         self.key_number=-1
         
@@ -80,26 +80,26 @@ class DictGenerator(Greenlet, QueueFunctions, Block):
             self.generateValue = self.generateValueNumber
         else:
             self.generateValue = self.pickWord
-    
+           
     def _run(self):
         self.logging.info('Started')
-        while self.block():
+        while self.block() == True:
             data={}
             for x in xrange(self.min_elements,self.max_elements):
                 data[self.generateKey()]=self.generateValue()
-            self.putData({"header":{},"data":data})
+            self.putData({"header":{},"data":data},'inbox')
             sleep(0)
     
     def readWordList(self, filename):
         '''Reads and returns the wordlist as a tuple.'''
-        f = file.open(filename,"r")
+        f = open(filename,"r")
         words=f.readlines()
         f.close()
         return tuple(words)            
     
     def pickWord(self):
         '''Returns a word as string from the wordlist.'''
-        return choice(self.wordlist)
+        return choice(self.wordlist).rstrip()
     
     def generateValueInteger(self):
         '''Returns a random number.'''

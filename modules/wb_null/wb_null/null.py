@@ -23,6 +23,7 @@
 #       
 
 from wishbone.toolkit import PrimitiveActor
+from wishbone.toolkit import TimeFunctions
 
 
 class Null(PrimitiveActor):
@@ -40,6 +41,7 @@ class Null(PrimitiveActor):
     def __init__(self, name):
         PrimitiveActor.__init__(self, name)
     
+    @TimeFunctions.do
     def consume(self,doc):
         pass
        
