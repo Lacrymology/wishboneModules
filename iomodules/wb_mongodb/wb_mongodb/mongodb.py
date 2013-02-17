@@ -23,7 +23,7 @@
 #  
 
 import logging
-from wishbone.toolkit import QueueFunctions, Block
+from wishbone.toolkit import QueueFunctions, Block, TimeFunctions
 from gevent import Greenlet, spawn, sleep
 import pymongo
 from pymongo.errors import AutoReconnect
@@ -41,8 +41,6 @@ class MongoDB(Greenlet, QueueFunctions, Block):
         - capped (bool):            Whether the collection is capped.
         - size (int):               Maximum size of the capped collection.
         - max (int):                Maximum number of documents in the capped collection.
-        - autodel_db (bool)         Drop the database on exit.
-        - dateconversions (list):   A list of fields to convert date.
 
     Queues:
         
@@ -91,11 +89,16 @@ class MongoDB(Greenlet, QueueFunctions, Block):
         while self.block() == True:                
             try:
                 doc = self.outbox.get()
-                self.mongo.insert(doc["data"])
+                self.insert(doc)
                 self.logging.debug("Record inserted")
             except Exception as err:
+                print doc
                 self.logging.warn("There is an error inserting doc to MongoDB. Reason: %s"%(err))
-                self.__setup()      
+                self.__setup()     
+
+    @TimeFunctions.do
+    def insert(self,data):
+        self.mongo.insert(data["data"])
 
     def shutdown(self):
         if self.drop_db == True:

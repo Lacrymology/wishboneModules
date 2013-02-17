@@ -100,7 +100,12 @@ class DictGenerator(Greenlet, QueueFunctions, Block):
     
     def pickWord(self):
         '''Returns a word as string from the wordlist.'''
-        return choice(self.wordlist).rstrip()
+        while self.block() == True:
+            word = choice(self.wordlist).rstrip()
+            try:
+                return word.encode("ascii","ignore")
+            except:
+                pass
     
     def generateValueInteger(self):
         '''Returns a random number.'''
