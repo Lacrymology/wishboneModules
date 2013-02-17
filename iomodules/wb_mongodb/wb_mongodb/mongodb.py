@@ -49,7 +49,7 @@ class MongoDB(Greenlet, QueueFunctions, Block):
         - outbox:               Messages destined for MongoDB.
     '''
     
-    def __init__(self, name, host, db, collection, capped=False, size=100000,max=100000,drop_db=False,dateconversions=[]):
+    def __init__(self, name, host, db, collection, capped=False, size=100000,max=100000,drop_db=False):
         Greenlet.__init__(self)
         Block.__init__(self)
         QueueFunctions.__init__(self)
@@ -63,7 +63,6 @@ class MongoDB(Greenlet, QueueFunctions, Block):
         self.size=size
         self.max=max
         self.drop_db=drop_db
-        self.dateconversions=dateconversions
         self.mongo=None
 
     def __setup(self):
@@ -89,18 +88,14 @@ class MongoDB(Greenlet, QueueFunctions, Block):
         '''
         self.__setup()
         self.logging.info('Started')
-        while self.block() == True:
-            while self.block() == True:                
-                try:
-                    doc = self.outbox.get()
-                    for conversion in self.dateconversions:
-                        doc["data"][conversion]=dateutil.parser.parse(doc["data"][conversion])
-                    self.mongo.insert(doc["data"])
-                    self.logging.debug("Record inserted")
-                    break
-                except Exception as err:
-                    self.logging.warn("There is an error inserting doc to MongoDB. Reason: %s"%(err))
-                    self.__setup()      
+        while self.block() == True:                
+            try:
+                doc = self.outbox.get()
+                self.mongo.insert(doc["data"])
+                self.logging.debug("Record inserted")
+            except Exception as err:
+                self.logging.warn("There is an error inserting doc to MongoDB. Reason: %s"%(err))
+                self.__setup()      
 
     def shutdown(self):
         if self.drop_db == True:
