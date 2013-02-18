@@ -108,7 +108,9 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
                 except NotFound as err:
                     self.logging.error("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
                     if self.auto_create == True:
-                        self.brokerCreateQueue(kwargs["consume_queue"])
+                        print vars(err)
+                        pass
+                        #self.brokerCreateQueue(kwargs["consume_queue"])
                 except ConnectionError as err:
                     sleep_seconds*=2
                     self.logging.error("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
@@ -129,14 +131,32 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         outgoing = spawn(self.continuousSubmitBroker)
         ack = spawn(self.continuousbrokerAcknowledgeMessage)
         
+        if self.consume_queue==False:
+            self.continuousProduceBroker()
+        else:
+            continuousConsumeBroker()
+    
+    def continuousProduceBroker(self):
+        '''Blocking function for outgoing messages.'''
         while self.block() == True:
-            try:
-                self.incoming.wait()
-            except Exception as err:
-                self.brokerSetupConnection()
+            self.outgoingWait()
+    
+    @safe
+    def outgoingWait(self):
+        self.outgoing.wait()
 
+    def continuousConsumeBroker(self):
+        '''Blocking function which consumes all data from the defined broker queue.'''
+        while self.block() == True:
+            self.incomingWait()
+    
+    @safe
+    def incomingWait(self):
+        self.incoming.wait()
+    
     def continuousSubmitBroker(self):
         '''Submits all data from self.outbox into the broker by calling the produce() funtion untill interrupted.'''
+        
         while self.block() == True:
             self.brokerProduceMessage(self.getData("outbox"))
 
@@ -151,9 +171,9 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         '''Handles connection and channel creation.  Blocks and retries untill successful or interrupted.'''
        
         self.conn = amqp.Connection(host="%s:5672"%(host), userid=username, password=password, virtual_host=virtual_host)
-        self.incoming = self.conn.channel()
-        self.incoming.basic_qos(prefetch_size=0, prefetch_count=prefetch_count, a_global=False)
         if consume_queue != False:
+            self.incoming = self.conn.channel()
+            self.incoming.basic_qos(prefetch_size=0, prefetch_count=prefetch_count, a_global=False)
             self.incoming.basic_consume(queue=consume_queue, callback=self.consumeMessage, no_ack=no_ack, consumer_tag="incoming")
         else:
             self.logging.debug("No queue to consume defined hence not consuming anything.")
