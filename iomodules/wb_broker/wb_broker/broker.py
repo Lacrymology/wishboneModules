@@ -63,7 +63,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         - vhost (str):          The virtual host of the broker. By default this is '/'.
         - username (str):       The username to connect to the broker.  By default this is 'guest'.
         - password (str):       The password to connect to the broker.  By default this is 'guest'.
-        - consume_queue (str):  The queue which should be consumed. By default this is "wishbone_in".
+        - consume_queue (str):  The queue which should be consumed. By default this is None. When None no queue is consumed.
         - prefetch_count (str): The amount of messages consumed from the queue at once.
         - no_ack (str):         No acknowledgements required? By default this is False (means acknowledgements are required.)
         - delivery_mode (int):  The message delivery mode.  1 is Non-persistent, 2 is Persistent. Default=2
@@ -76,7 +76,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         - acknowledge:        Message tags to acknowledge with the broker.
     '''
 
-    def __init__(self, name, host, vhost='/', username='guest', password='guest', prefetch_count=1, no_ack=True, consume_queue='wishbone_in', delivery_mode=2, auto_create=True ):
+    def __init__(self, name, host, vhost='/', username='guest', password='guest', prefetch_count=1, no_ack=True, consume_queue=None, delivery_mode=2, auto_create=True ):
 
         Greenlet.__init__(self)
         Block.__init__(self)
@@ -153,7 +153,10 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         self.conn = amqp.Connection(host="%s:5672"%(host), userid=username, password=password, virtual_host=virtual_host)
         self.incoming = self.conn.channel()
         self.incoming.basic_qos(prefetch_size=0, prefetch_count=prefetch_count, a_global=False)
-        self.incoming.basic_consume(queue=consume_queue, callback=self.consumeMessage, no_ack=no_ack, consumer_tag="incoming")
+        if consume_queue != None:
+            self.incoming.basic_consume(queue=consume_queue, callback=self.consumeMessage, no_ack=no_ack, consumer_tag="incoming")
+        else:
+            self.logging.debug("No queue to consume defined hence not consuming anything.")
         self.outgoing = self.conn.channel()
         self.logging.info('Connected to broker')
 
@@ -182,7 +185,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
     @safe
     @TimeFunctions.do
     def brokerProduceMessage(self,message):
-        '''Is called upon each message going to to the broker infrastructure.'''
+        '''Is called upon each message going to the broker infrastructure.'''
 
         if message["header"].has_key('broker_exchange') and message["header"].has_key('broker_key'):
             msg = amqp.Message(str(message['data']))
