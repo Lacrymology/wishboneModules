@@ -128,39 +128,33 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         self.brokerSetupConnection(host=self.host, username=self.username, password=self.password, virtual_host=self.vhost,
             prefetch_count=self.prefetch_count,consume_queue=self.consume_queue,no_ack=self.no_ack
         )
-        outgoing = spawn(self.continuousSubmitBroker)
-        ack = spawn(self.continuousbrokerAcknowledgeMessage)
+        outgoing = spawn(self.continuousProduceBroker)
+        ack = spawn(self.continuousAcknowledgeBroker)
         
-        if self.consume_queue==False:
-            self.continuousProduceBroker()
-        else:
+        if self.consume_queue != False:
             continuousConsumeBroker()
+        else:
+            self.wait()
+            
     
-    def continuousProduceBroker(self):
-        '''Blocking function for outgoing messages.'''
-        while self.block() == True:
-            self.outgoingWait()
     
-    @safe
-    def outgoingWait(self):
-        self.outgoing.wait()
+    
+
 
     def continuousConsumeBroker(self):
         '''Blocking function which consumes all data from the defined broker queue.'''
         while self.block() == True:
-            self.incomingWait()
+            @safe
+            def incomingWait(self):
+                self.incoming.wait()
     
-    @safe
-    def incomingWait(self):
-        self.incoming.wait()
-    
-    def continuousSubmitBroker(self):
+    def continuousProduceBroker(self):
         '''Submits all data from self.outbox into the broker by calling the produce() funtion untill interrupted.'''
         
         while self.block() == True:
             self.brokerProduceMessage(self.getData("outbox"))
 
-    def continuousbrokerAcknowledgeMessage(self):
+    def continuousAcknowledgeBroker(self):
         '''A blocking function which continuously consumes the "acknowledge" queue untill interrupted.'''
 
         while self.block() == True:
@@ -174,7 +168,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         if consume_queue != False:
             self.incoming = self.conn.channel()
             self.incoming.basic_qos(prefetch_size=0, prefetch_count=prefetch_count, a_global=False)
-            self.incoming.basic_consume(queue=consume_queue, callback=self.consumeMessage, no_ack=no_ack, consumer_tag="incoming")
+            self.incoming.basic_consume(queue=consume_queue, callback=self.brokerConsumeMessage, no_ack=no_ack, consumer_tag="incoming")
         else:
             self.logging.debug("No queue to consume defined hence not consuming anything.")
         self.outgoing = self.conn.channel()
@@ -217,9 +211,10 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
             self.logging.warn('Received data for broker without exchange or routing key in header. Purged.')
             if message['header'].has_key('broker_tag') and self.no_ack == False:
                 self.brokerAcknowledgeMessage(message['header']['broker_tag'])
+        self.outgoing.wait()
         
     @TimeFunctions.do
-    def consumeMessage(self,message):
+    def brokerConsumeMessage(self,message):
         '''Is called upon each message coming from the broker infrastructure.'''
         
         self.putData({'header':{'broker_tag':message.delivery_tag},'data':message.body}, queue='inbox')
