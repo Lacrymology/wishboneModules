@@ -130,16 +130,11 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         )
         outgoing = spawn(self.continuousProduceBroker)
         ack = spawn(self.continuousAcknowledgeBroker)
-        
+
         if self.consume_queue != False:
             continuousConsumeBroker()
         else:
             self.wait()
-            
-    
-    
-    
-
 
     def continuousConsumeBroker(self):
         '''Blocking function which consumes all data from the defined broker queue.'''
@@ -147,10 +142,10 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
             @safe
             def incomingWait(self):
                 self.incoming.wait()
-    
+
     def continuousProduceBroker(self):
         '''Submits all data from self.outbox into the broker by calling the produce() funtion untill interrupted.'''
-        
+
         while self.block() == True:
             self.brokerProduceMessage(self.getData("outbox"))
 
@@ -163,7 +158,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
     @safe
     def brokerSetupConnection(self,host,username,password,virtual_host,prefetch_count,consume_queue,no_ack):
         '''Handles connection and channel creation.  Blocks and retries untill successful or interrupted.'''
-       
+
         self.conn = amqp.Connection(host="%s:5672"%(host), userid=username, password=password, virtual_host=virtual_host)
         if consume_queue != False:
             self.incoming = self.conn.channel()
@@ -212,11 +207,11 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
             if message['header'].has_key('broker_tag') and self.no_ack == False:
                 self.brokerAcknowledgeMessage(message['header']['broker_tag'])
         self.outgoing.wait()
-        
+
     @TimeFunctions.do
     def brokerConsumeMessage(self,message):
         '''Is called upon each message coming from the broker infrastructure.'''
-        
+
         self.putData({'header':{'broker_tag':message.delivery_tag},'data':message.body}, queue='inbox')
         self.logging.debug('Data received from broker.')
         sleep()
@@ -225,7 +220,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         '''This function is called on shutdown().'''
         try:
              self.incoming.close()
-             self.outgoing.close()      
+             self.outgoing.close()
         except:
             pass
         self.logging.info('Shutdown')
