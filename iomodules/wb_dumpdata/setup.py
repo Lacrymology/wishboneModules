@@ -50,3 +50,4 @@ setup(
         [wishbone.iomodule]
         DumpData=wb_dumpdata.dumpdata:DumpData
     """
+)
