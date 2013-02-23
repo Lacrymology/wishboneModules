@@ -88,11 +88,10 @@ class MongoDB(Greenlet, QueueFunctions, Block):
         self.logging.info('Started')
         while self.block() == True:                
             try:
-                doc = self.outbox.get()
+                doc = self.getData("outbox")
                 self.insert(doc)
                 self.logging.debug("Record inserted")
             except Exception as err:
-                print doc
                 self.logging.warn("There is an error inserting doc to MongoDB. Reason: %s"%(err))
                 self.__setup()     
 
