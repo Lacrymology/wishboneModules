@@ -58,7 +58,7 @@ class UDSServer(Greenlet, QueueFunctions, Block):
     When multiple, parallel instances are started we would have the different
     domain socket servers bind to the same name, which will not work.  Creating a
     random name inside a directory created a pool of sockets to which a client can 
-    round-robbin.
+    round-robin.
     
     delimiter
     ~~~~~~~~~
