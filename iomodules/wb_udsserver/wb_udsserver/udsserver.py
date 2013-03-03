@@ -34,15 +34,7 @@ import logging
 class UDSServer(Greenlet, QueueFunctions, Block):
     '''**A Wishbone IO module which accepts external input from a unix domain socket.**
 
-    Creates a Unix domain socket to which data can be submitted.
-
-    The listener can run in 2 different modes:
-
-        - blob: The incoming data is put into 1 event.
-        - line: Each new line is treated as a new event.
-    
-    When pool is set to True, then path will considered to be directory.  If false,
-    then path will be the filename of the socket file.
+    Creates a Unix domain socket to which data can be streamed.
 
     Parameters:
 
@@ -50,23 +42,46 @@ class UDSServer(Greenlet, QueueFunctions, Block):
         - pool (bool):          When true path is considered to be a directory in 
                                 which a socket with random name is created.
         - path (str):           The location of the directory or socket file.
-
+        - delimiter (str):      The delimiter which separates multiple messages in
+                                a stream of data.
+        
     Queues:
 
         - inbox:       Data coming from the outside world.
+    
+    pool
+    ~~~~
+    When pool is set to True, the path value will be considered a directory.
+    This module will then create a socket file with a random name in it.
+    When pool is set to False, then path value will be considered the filename of 
+    the socket file.
+    When multiple, parallel instances are started we would have the different
+    domain socket servers bind to the same name, which will not work.  Creating a
+    random name inside a directory created a pool of sockets to which a client can 
+    round-robbin.
+    
+    delimiter
+    ~~~~~~~~~
+    When no delimiter is defined, all incoming data between connect and disconnect
+    is considered to be 1 Wishbone message/event. 
+    When a delimiter is defined, Wishbone tries to extract multiple events out of
+    a data stream.  Wishbone will check each line of data whether it ends with the
+    delimiter.  If not it is inserted to an internal buffer.  If so, the delimiter
+    will be stripped of that last line and when there is data left, it is added to
+    the buffer and the buffer is then flushed as one Wishbone message/event.  The
+    advantage is that a client can stay connected and stream data.
     '''
 
-    def __init__(self, name, pool=True, path="/tmp"):
+    def __init__(self, name, pool=True, path="/tmp", delimiter=None):
         Greenlet.__init__(self)
         QueueFunctions.__init__(self)
         Block.__init__(self)
         self.name=name
         self.pool=pool
         self.path=path
-        self.logging = logging.getLogger( name )
-        
-        (self.sock, self.filename)=self.__setupSocket()
-        
+        self.delimiter=delimiter
+        self.logging = logging.getLogger( name )        
+        (self.sock, self.filename)=self.__setupSocket()        
         self.logging.info("Initialiazed")
 
     def __setupSocket(self):
@@ -89,8 +104,27 @@ class UDSServer(Greenlet, QueueFunctions, Block):
     def handle(self, sock, address):
         sfile = sock.makefile()
         data=[]
-        chunk = sfile.readlines()
-        self.putData({'header':{},'data':''.join(chunk)}, queue='inbox')
+        
+        if self.delimiter == None:
+            chunk = sfile.readlines()
+            self.putData({'header':{},'data':''.join(chunk)}, queue='inbox')
+        else:
+            while self.block()==True:
+                chunk = sfile.readline()
+                if chunk == "":
+                    if len(data) > 0:
+                        self.putData({'header':{},'data':''.join(data)}, queue='inbox')
+                    break
+                else:
+                    if chunk.endswith(self.delimiter):
+                        chunk=chunk.rstrip(self.delimiter)
+                        if chunk != '':
+                            data.append(chunk)
+                        if len(data) > 0:
+                            self.putData({'header':{},'data':''.join(data)}, queue='inbox')
+                            data=[]
+                    else:
+                        data.append(chunk)      
         sfile.close()
         sock.close()
         
