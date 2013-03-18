@@ -146,7 +146,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         '''Submits all data from self.outbox into the broker by calling the produce() funtion untill interrupted.'''
 
         while self.block() == True:
-            self.brokerProduceMessage(self.getData("outbox"))
+            self.brokerProduceMessage(self.getData("outbox")) 
 
     def continuousAcknowledgeBroker(self):
         '''A blocking function which continuously consumes the "acknowledge" queue untill interrupted.'''
@@ -187,7 +187,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         '''Create binding between exchange and queue.'''
         if exchange != "":
             self.logging.info("Createing binding between exchange %s and queue %s"%(exchange, key))
-            self.outgoing.queue_bind(key,exchange=exchange,nowait=True)
+            self.outgoing.queue_bind(key, exchange=exchange, routing_key=key, nowait=True)
 
     @safe
     @TimeFunctions.do

@@ -66,10 +66,11 @@ class UDSServer(Greenlet, QueueFunctions, Block):
     is considered to be 1 Wishbone message/event. 
     When a delimiter is defined, Wishbone tries to extract multiple events out of
     a data stream.  Wishbone will check each line of data whether it ends with the
-    delimiter.  If not it is inserted to an internal buffer.  If so, the delimiter
-    will be stripped of that last line and when there is data left, it is added to
-    the buffer and the buffer is then flushed as one Wishbone message/event.  The
-    advantage is that a client can stay connected and stream data.
+    delimiter.  If not the line will be added to an internal buffer.  If so, the
+    delimiter will be stripped of and when there is data left, it will be added to
+    the buffer after which the buffer will be flushed as one Wishbone
+    message/event.  The advantage is that a client can stay connected and stream
+    data.
     '''
 
     def __init__(self, name, pool=True, path="/tmp", delimiter=None):
