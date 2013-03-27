@@ -45,6 +45,8 @@ setup(
     description="A Wishbone module which adds a wb_broker header to each event",
     author="Jelle Smet",
     packages=find_packages(),
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone'],
     include_package_data=True,
     entry_points="""
         [wishbone.module]

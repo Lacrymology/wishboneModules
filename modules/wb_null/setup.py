@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="Null Wishbone module is just a sink in which messages disappear.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""

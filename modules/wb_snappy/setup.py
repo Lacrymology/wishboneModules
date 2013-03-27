@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="A Wishbone module which compresses or decompresses data using Snappy.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone','snappy'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""

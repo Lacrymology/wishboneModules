@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="Skeleton Wishbone module is a minimal module which does nothing more than shoveling data from inbox to outbox.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""

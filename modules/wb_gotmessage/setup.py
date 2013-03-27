@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="A WishBone module which just logs and drops any passing message.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""
