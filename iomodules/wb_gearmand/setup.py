@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="A Wishbone IO module which consumes jobs from a Gearmand server.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone','gearmand','pycrypto'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""

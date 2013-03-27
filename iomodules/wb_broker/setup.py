@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="A Wishbone IO module which handles AMQP input and output.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone','amqp'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""

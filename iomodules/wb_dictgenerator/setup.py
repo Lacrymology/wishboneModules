@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="A WishBone IO module which generates dictionaries build out of words randomly chosen from a provided wordlist.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""

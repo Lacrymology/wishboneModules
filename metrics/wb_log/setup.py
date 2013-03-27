@@ -44,7 +44,9 @@ setup(
     version="0.1",
     description="A Wishbone metrics module which logs Wishbone produced metrics to logging.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
     packages=find_packages(),
+    install_requires=['wishbone'],
     include_package_data=True,
     entry_points="""
         [wishbone.metrics]

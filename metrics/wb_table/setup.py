@@ -44,6 +44,8 @@ setup(
     version="0.1",
     description="A Wishbone metrics module which logs Wishbone produced metrics to a table.",
     author="Jelle Smet",
+    url="https://github.com/smetj/wishboneModules",
+    install_requires=['wishbone','Prettytable'],
     packages=find_packages(),
     include_package_data=True,
     entry_points="""
