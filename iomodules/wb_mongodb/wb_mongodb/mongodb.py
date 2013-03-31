@@ -27,7 +27,6 @@ from wishbone.toolkit import QueueFunctions, Block, TimeFunctions
 from gevent import Greenlet, spawn, sleep
 import pymongo
 from pymongo.errors import AutoReconnect
-import dateutil.parser
 
 class MongoDB(Greenlet, QueueFunctions, Block):
     '''**A Wishbone IO which loads messages into a MongoDB.**
