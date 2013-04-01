@@ -24,7 +24,7 @@
 
 PROJECT = 'wb_mongodb'
 
-VERSION = '0.1'
+VERSION = '0.2'
 
 
 from setuptools import setup, find_packages
@@ -41,7 +41,7 @@ except IOError:
 
 setup(
     name='wb_mongodb',
-    version="0.1",
+    version="0.2",
     description="A Wishbone IO which loads messages into a MongoDB.",
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
