@@ -32,7 +32,7 @@ wb_broker
         - vhost (str):          The virtual host of the broker. By default this is '/'.
         - username (str):       The username to connect to the broker.  By default this is 'guest'.
         - password (str):       The password to connect to the broker.  By default this is 'guest'.
-        - consume_queue (str):  The queue which should be consumed. By default this is "wishbone_in".
+        - consume_queue (str):  The queue which should be consumed. By default this is False. When False no queue is consumed.
         - prefetch_count (str): The amount of messages consumed from the queue at once.
         - no_ack (str):         No acknowledgements required? By default this is False (means acknowledgements are required.)
         - delivery_mode (int):  The message delivery mode.  1 is Non-persistent, 2 is Persistent. Default=2
@@ -43,5 +43,5 @@ wb_broker
         - inbox:              Messages coming from the broker.
         - outbox:             Messages destined for the broker.
         - acknowledge:        Message tags to acknowledge with the broker.
-    
+
 
