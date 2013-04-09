@@ -115,5 +115,4 @@ class TCPServer(Greenlet, QueueFunctions, Block):
             self.shutdown()
 
     def shutdown(self):
-        remove(self.filename)
         self.logging.info('Shutdown')
