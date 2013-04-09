@@ -25,7 +25,6 @@
 from os import remove, path, makedirs
 from gevent.server import StreamServer
 from gevent import Greenlet, socket, sleep
-from gevent.queue import Queue
 from wishbone.toolkit import QueueFunctions, Block
 from uuid import uuid4
 import logging
@@ -39,31 +38,31 @@ class UDSServer(Greenlet, QueueFunctions, Block):
     Parameters:
 
         - name (str):           The instance name when initiated.
-        - pool (bool):          When true path is considered to be a directory in 
+        - pool (bool):          When true path is considered to be a directory in
                                 which a socket with random name is created.
         - path (str):           The location of the directory or socket file.
         - delimiter (str):      The delimiter which separates multiple messages in
                                 a stream of data.
-        
+
     Queues:
 
         - inbox:       Data coming from the outside world.
-    
+
     pool
     ~~~~
     When pool is set to True, the path value will be considered a directory.
     This module will then create a socket file with a random name in it.
-    When pool is set to False, then path value will be considered the filename of 
+    When pool is set to False, then path value will be considered the filename of
     the socket file.
     When multiple, parallel instances are started we would have the different
     domain socket servers bind to the same name, which will not work.  Creating a
-    random name inside a directory created a pool of sockets to which a client can 
+    random name inside a directory created a pool of sockets to which a client can
     round-robin.
-    
+
     delimiter
     ~~~~~~~~~
     When no delimiter is defined, all incoming data between connect and disconnect
-    is considered to be 1 Wishbone message/event. 
+    is considered to be 1 Wishbone message/event.
     When a delimiter is defined, Wishbone tries to extract multiple events out of
     a data stream.  Wishbone will check each line of data whether it ends with the
     delimiter.  If not the line will be added to an internal buffer.  If so, the
@@ -81,8 +80,8 @@ class UDSServer(Greenlet, QueueFunctions, Block):
         self.pool=pool
         self.path=path
         self.delimiter=delimiter
-        self.logging = logging.getLogger( name )        
-        (self.sock, self.filename)=self.__setupSocket()        
+        self.logging = logging.getLogger( name )
+        (self.sock, self.filename)=self.__setupSocket()
         self.logging.info("Initialiazed")
 
     def __setupSocket(self):
@@ -94,18 +93,18 @@ class UDSServer(Greenlet, QueueFunctions, Block):
         else:
             filename = self.path
             self.logging.info("Socket file %s created."%filename)
-                
+
         sock=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setblocking(0)
         sock.bind(filename)
         sock.listen(50)
         return (sock, filename)
-    
+
     def handle(self, sock, address):
         sfile = sock.makefile()
         data=[]
-        
+
         if self.delimiter == None:
             chunk = sfile.readlines()
             self.putData({'header':{},'data':''.join(chunk)}, queue='inbox')
@@ -125,10 +124,10 @@ class UDSServer(Greenlet, QueueFunctions, Block):
                             self.putData({'header':{},'data':''.join(data)}, queue='inbox')
                             data=[]
                     else:
-                        data.append(chunk)      
+                        data.append(chunk)
         sfile.close()
         sock.close()
-        
+
     def _run(self):
         try:
             StreamServer(self.sock, self.handle).serve_forever()
