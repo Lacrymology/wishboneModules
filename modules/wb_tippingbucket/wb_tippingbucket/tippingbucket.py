@@ -29,9 +29,9 @@ from gevent.event import Event
 from gevent import monkey;monkey.patch_all()
 
 class TippingBucket(PrimitiveActor):
-    
+
     '''**TippingBucket is a Wishbone module which buffers data.**
-    
+
     This module buffers data and dumps it to the output queue on 2 conditions:
 
         * Last data enteered in buffer is older than x seconds.
@@ -40,45 +40,57 @@ class TippingBucket(PrimitiveActor):
     When the buffer is empty, the header of the first incoming message will be used as the header
     for the message going out containing the content of the buffer.  If you want to override that
     header with a predefined one then use the <predefined_header> option.
-    
+
     Disclaimer: The size of the buffer is expressed in bytes.  This is *only* valid when you use
                 "single-byte encoding" characters.  Even then it's going to be an approximation.
                 When unicode is used this counter is not going to be realistic anymore.
-                
+
     Disclaimer2:    If you require binary data, encode into base64 or
                     something similar.  In that case take the growth of that into account:
-                    
+
                         ~ output_size = ((input_size - 1) / 3) * 4 + 4
-                    
+
                     So 256 bytes binary data results into 344 bytes of Base64 data.
-    
+
+    Keep in mind to set at least one of the parameters otherwise buffering will be indefinate.
+    Which means until Wishbone runs out of memory.
+
     Parameters:
 
-        - age (int):                The time in seconds since the first update when the buffer is flushed.
-        - size (int):               The total size in bytes of the buffer when it is flushed.
+        - age (int):                The time in seconds to buffer before flushing.
+                                    0 to disable. (default 0)
+        - size (int):               The total size in bytes to buffer before flushing.
+                                    0 to disable. (default 0)
+        - events (int):             The total number of events to buffer before flusing.
+                                    0 to disable. (default 0)
+
         - predefined_header (dict): Assign this header to the buffered event when submitting to outbox.
-    
+
     Queues:
-    
+
         - inbox:    Incoming events.
         - outbox:   Outgoing events.
-    
-    Todo(smetj): Figure out something smarter to find out the size of the buffer.                
+
+
     '''
 
-    def __init__(self, name, age=5, size=10000, predefined_header=None):
+    def __init__(self, name, age=0, size=0, events=0, predefined_header=None):
 
         PrimitiveActor.__init__(self, name)
         self.age = age
         self.size = size
+        self.events = events
         self.predefined_header=predefined_header
         self.buff=[]
         self.buff_age=0
         self.buff_size=0
+        self.buff_events=0
         self.buff_header={}
         spawn(self.reaper)
 
     def consume(self,doc):
+
+        self.buff_events+=1
 
         if self.buff_age==0:
             self.buff_age=time()
@@ -87,8 +99,12 @@ class TippingBucket(PrimitiveActor):
         self.buff.append(doc["data"])
         self.buff_size+=len((doc["data"]))
 
-        if self.buff_size > self.size:
-            self.logging.debug("Size of buffer exceeded. Flushed.")
+        if self.size > 0 and self.buff_size > self.size:
+            self.logging.debug("Size of buffer (%s) exceeded. Flushed."%(self.size))
+            self.flushBuffer()
+
+        if self.events > 0 and self.buff_events > self.events:
+            self.logging.debug("Total number of events (%s) in buffer exceeded. Flushed."%(self.events))
             self.flushBuffer()
 
     def reaper(self):
@@ -113,10 +129,11 @@ class TippingBucket(PrimitiveActor):
 
     def resetBuffer(self):
         '''Resets the counters.'''
-        
+
         self.buff=[]
         self.buff_age=0
         self.buff_size=0
+        self.buff_events=0
         self.buff_header={}
 
     def shutdown(self):
