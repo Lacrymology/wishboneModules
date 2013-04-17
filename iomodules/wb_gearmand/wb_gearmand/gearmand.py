@@ -34,9 +34,9 @@ from gevent import monkey;monkey.patch_all()
 class Gearmand(Greenlet, QueueFunctions, Block):
     '''
     ***Consumes jobs from a Gearmand server.***
-    
+
     Consumes jobs from a Gearmand server.
-    
+
     Parameters:
         * hostnames:    A list with hostname:port entries.
                         Default: []
@@ -61,11 +61,12 @@ class Gearmand(Greenlet, QueueFunctions, Block):
         self.hostnames=kwargs.get('hostnames',[])
         self.secret=kwargs.get('secret','')
         self.workers=kwargs.get('workers',1)
-        self.cipher=AES.new(self.secret[0:32])
+        key = self.secret[0:32]
+        self.cipher=AES.new(key+chr(0)*(32-len(key)))
         self.worker_instances=[]
         self.background_instances=[]
-        self.inbox=Queue(None)        
-        
+        self.inbox=Queue(None)
+
     def decode (self, gearman_worker, gearman_job):
         self.logging.debug ('Data received.')
         self.sendData({'header':{},'data':self.cipher.decrypt(base64.b64decode(gearman_job.data))}, queue='inbox')
@@ -84,7 +85,7 @@ class Gearmand(Greenlet, QueueFunctions, Block):
                 self.worker_instances[-1].register_task('perfdata', self.decode)
                 self.worker_instances[-1].work()
             except Exception as err:
-                self.logging.debug ('Connection to gearmand failed. Reason: %s'%err)               
+                self.logging.debug ('Connection to gearmand failed. Reason: %s'%err)
 
     def shutdown(self):
         self.logging.info('Shutdown')

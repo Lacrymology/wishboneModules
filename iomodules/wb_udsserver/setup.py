@@ -21,32 +21,32 @@
 #  MA 02110-1301, USA.
 #
 #
+import setuptools
+import inspect
+from os import path
+from sys import version_info
 
 PROJECT = 'wb_udsserver'
+VERSION = '0.2'
 
-VERSION = '0.1'
+#The goal is to have a .pth file so it can be included when creating RPMs
+module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
+pth_dir="./%s-%s-py%s.egg"%(PROJECT,
+    VERSION,
+    '.'.join(str(i) for i in version_info[0:2]))
+pth=open ("%s/%s.pth"%(module_path,PROJECT),'w')
+pth.write(pth_dir)
+pth.close()
 
 
-from setuptools import setup, find_packages
-
-from distutils.util import convert_path
-from fnmatch import fnmatchcase
-import os
-import sys
-
-try:
-    long_description = open('README.md', 'rt').read()
-except IOError:
-    long_description = ''
-
-setup(
-    name='wb_udsserver',
-    version="0.1",
+setuptools.setup(
+    name=PROJECT,
+    version=VERSION,
     description="A Wishbone IO module which accepts external input from a unix domain socket.",
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
     install_requires=['wishbone'],
-    packages=find_packages(),
+    packages=setuptools.find_packages(),
     include_package_data=True,
     entry_points="""
         [wishbone.iomodule]

@@ -1,5 +1,5 @@
-wb_snappy
-=========
+wishbone-snappy
+===============
 
 **A Wishbone module which compresses or decompresses data using Snappy.**
 
@@ -25,5 +25,3 @@ wb_snappy
 
         - inbox:    Incoming events.
         - outbox:   Outgoing events.
-    
-
