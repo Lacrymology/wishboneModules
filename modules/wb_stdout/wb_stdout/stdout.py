@@ -37,6 +37,7 @@ class STDOUT(PrimitiveActor):
     Parameters:
 
         - name (str):       The instance name when initiated.
+        - enable (bool):    When True, prints to STDOUT, when false not.
         - complete (bool):  When True, print the complete event including headers.
         - purge (bool):     When True the message is dropped and not put in outbox.
         - counter (bool):   Puts an incremental number for each event in front of each event.
@@ -47,19 +48,20 @@ class STDOUT(PrimitiveActor):
         - outbox:   Outgoing events.
     '''
 
-    def __init__(self, name, complete=False, purge=False, counter=False):
+    def __init__(self, name, enable=True, complete=False, purge=False, counter=False):
         PrimitiveActor.__init__(self, name)
+        self.enable=enable
         self.complete=complete
         self.purge=purge
         self.counter=counter
         self.c=0
 
     def consume(self,doc):
-
-        if self.complete == True:
-            print '%s - %s'%(self.c,doc)
-        else:
-            print '%s - %s'%(self.c,doc['data'])
+        if self.enable == True:
+            if self.complete == True:
+                print '%s - %s'%(self.c,doc)
+            else:
+                print '%s - %s'%(self.c,doc['data'])
         if self.purge == False:
             self.putData(doc)
         self.c+=1
