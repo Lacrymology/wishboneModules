@@ -55,6 +55,12 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         - broker_key:         The routing key used when submitting data.
         - broker_tag:         The tag used to acknowledge the message from the broker.
 
+    Miscellaneous:
+
+        Outgoing Events (submitted to outbox) with a data field of <type list> will be joined into 1 string.
+        All other data fields are converted into <type str>.
+
+
     Parameters:
 
         - name (str):           The instance name when initiated.
@@ -64,7 +70,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         - password (str):       The password to connect to the broker.  By default this is 'guest'.
         - consume_queue (str):  The queue which should be consumed. By default this is False. When False no queue is consumed.
         - prefetch_count (str): The amount of messages consumed from the queue at once.
-        - no_ack (str):         No acknowledgements required? By default this is False (means acknowledgements are required.)
+        - no_ack (str):         No acknowledgments required? By default this is False (means acknowledgments are required.)
         - delivery_mode (int):  The message delivery mode.  1 is Non-persistent, 2 is Persistent. Default=2
         - auto_create (bool):   When True missing exchanges and queues will be created.
 
@@ -205,8 +211,14 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
             self.createBrokerConfig(message["header"]["broker_exchange"],message["header"]["broker_key"])
 
         if message["header"].has_key('broker_exchange') and message["header"].has_key('broker_key'):
-            msg = amqp.Message(str(message['data']))
+
+            if isinstance(message["data"], list):
+                data = ''.join(message["data"])
+            else:
+                data = message["data"]
+            msg = amqp.Message(data)
             msg.properties["delivery_mode"] = self.delivery_mode
+
             self.outgoing.basic_publish(msg,exchange=message['header']['broker_exchange'],routing_key=message['header']['broker_key'])
             if message['header'].has_key('broker_tag') and self.no_ack == False:
                 self.brokerAcknowledgeMessage(message['header']['broker_tag'])
