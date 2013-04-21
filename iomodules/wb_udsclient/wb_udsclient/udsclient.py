@@ -34,19 +34,19 @@ import logging
 class UDSClient(PrimitiveActor):
     '''**A Wishbone IO module which writes data into a Unix domain socket.**
 
-    Writes data into a Unix domain socket.  
-    
+    Writes data into a Unix domain socket.
+
     If pool is True, path is expected to be a directory containing socket files over
     which the module will spread outgoing events.
     If pool if False, path is a socket file to which all outgoing events will be
     submitted.
-        
+
     Parameters:
 
         - name (str):   The instance name when initiated.
-        - pool (bool):  When True expects path to be a pool of sockets.        
+        - pool (bool):  When True expects path to be a pool of sockets.
         - path (str):   The absolute path of the socket file or the socket pool.
-        
+
     Queues:
 
         - inbox:    Incoming events.
@@ -55,25 +55,24 @@ class UDSClient(PrimitiveActor):
 
     def __init__(self, name, pool=True, path="/tmp"):
         PrimitiveActor.__init__(self, name)
-        
+
         self.name=name
         self.pool=pool
         self.path=path
         self.stream=stream
         self.reaptime=reaptime
-        
+
         self.socketpool=[]
         self.logging = logging.getLogger( name )
         self.poolReaper()
         self.logging.info('Initialiazed.')
 
-    def consume(self, doc):
-        if isinstance(doc['data'],list):
-            for data in doc["data"]:
-                self.sendToSocket(data)
+    def consume(self, event):
+        if isinstance(event['data'],list):
+            self.sendToSocket(''.join(event['data']))
         else:
-            self.sendToSocket(doc["data"])
-    
+            self.sendToSocket(event["data"])
+
     def sendToSocket(self, data):
         while self.block():
             try:
