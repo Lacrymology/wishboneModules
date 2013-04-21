@@ -62,18 +62,6 @@ class TCPClient(PrimitiveActor):
             p.append((address,int(port)))
         return p
 
-    def setupSockets(self):
-        pool=[]
-        for entry in self.pool:
-            address,port=entry.split(':')
-            try:
-                pool.append(socket.socket())
-                pool[-1].connect( (address,int(port)) )
-                self.logging.info("Connected to %s"%(pool[-1]))
-            except Exception as err:
-                self.logging.warn("I could not connect to %s. Reason: %s"%(entry,err))
-        return pool
-
     def consume(self, doc):
 
         if isinstance(doc["data"],list):
