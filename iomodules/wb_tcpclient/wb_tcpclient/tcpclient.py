@@ -65,7 +65,7 @@ class TCPClient(PrimitiveActor):
     def consume(self, doc):
 
         if isinstance(doc["data"],list):
-            data = '\n'.join(doc["data"]) + '\n'
+            data = ''.join(doc["data"])
         else:
             data = doc["data"]
 
