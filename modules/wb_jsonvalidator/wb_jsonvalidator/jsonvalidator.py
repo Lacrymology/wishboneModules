@@ -22,7 +22,7 @@
 #
 
 import json
-from jsonschema import Validator
+from jsonschema import Draft3Validator as Validator
 from wishbone.toolkit import PrimitiveActor, TimeFunctions
 
 
