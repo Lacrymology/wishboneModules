@@ -27,7 +27,7 @@ from os import path
 from sys import version_info
 
 PROJECT = 'wb_broker'
-VERSION = '0.2'
+VERSION = '0.3'
 
 #The goal is to have a .pth file so it can be included when creating RPMs
 module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
