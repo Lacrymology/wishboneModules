@@ -116,13 +116,13 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
                     if self.auto_create == True:
                         self.brokerCreateQueue(kwargs["consume_queue"])
                 except ConnectionError as err:
-                    sleep_seconds*=2
+                    #sleep_seconds*=2
                     self.logging.error("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
                 except Exception as err:
-                    sleep_seconds*=2
+                    #sleep_seconds*=2
                     self.logging.error("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
                 sleep(sleep_seconds)
-                self.logging.info("Sleeping for %s seconds."%sleep_seconds)
+                self.logging.info("Sleeping for %s second."%sleep_seconds)
         return do
 
     def _run(self):
@@ -144,9 +144,14 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         '''Blocking function which consumes all data from the defined broker queue.'''
 
         while self.block() == True:
-            while self.incoming.callbacks:
-                self.incoming.wait()
-            sleep(0.1)
+            try:
+                while self.incoming.callbacks:
+                    self.incoming.wait()
+                sleep(0.1)
+            except Exception as err:
+                self.logging.warn('Connection to broker broken.  Reason: %s'%(err))
+                self.brokerSetupConnection(host=self.host, username=self.username, password=self.password, virtual_host=self.vhost,
+                            prefetch_count=self.prefetch_count,consume_queue=self.consume_queue,no_ack=self.no_ack)
 
     def continuousProduceBroker(self):
         '''Submits all data from self.outbox into the broker by calling the produce() funtion untill interrupted.'''
