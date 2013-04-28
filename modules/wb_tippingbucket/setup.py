@@ -25,6 +25,7 @@ import setuptools
 import inspect
 from os import path
 from sys import version_info
+from wb_tippingbucket import TippingBucket
 
 PROJECT = 'wb_tippingbucket'
 VERSION = '0.2'
@@ -43,6 +44,7 @@ setuptools.setup(
     name=PROJECT,
     version=VERSION,
     description="A Wishbone module which buffers data.",
+    long_description=TippingBucket.__doc__,
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
     install_requires=['wishbone'],
