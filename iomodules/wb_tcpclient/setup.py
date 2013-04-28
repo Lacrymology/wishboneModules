@@ -38,11 +38,15 @@ pth=open ("%s/%s.pth"%(module_path,PROJECT),'w')
 pth.write(pth_dir)
 pth.close()
 
+with open('README.md') as file:
+    long_description = file.read()
+
 
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
     description="A Wishbone IO module which writes data to a TCP socket.",
+    long_description=long_description,
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
     install_requires=['wishbone'],
