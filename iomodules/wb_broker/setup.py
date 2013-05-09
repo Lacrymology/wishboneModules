@@ -34,20 +34,27 @@ module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
 pth_dir="./%s-%s-py%s.egg"%(PROJECT,
     VERSION,
     '.'.join(str(i) for i in version_info[0:2]))
-pth=open ("%s/%s.pth"%(module_path,PROJECT),'w')
+pth=open ("%s.pth"%(PROJECT),'w')
 pth.write(pth_dir)
 pth.close()
 
+try:
+    with open('README.md') as file:
+        long_description = file.read()
+except:
+    long_description=''
 
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
-    description="A Wishbone IO module which handles AMQP input and output.",
+    description="A Wishbone IO module which writes data to a TCP socket.",
+    long_description=long_description,
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
     install_requires=['wishbone','amqp'],
     packages=setuptools.find_packages(),
     include_package_data=True,
+    data_files=[(module_path, ["%s.pth"%(PROJECT)])],
     entry_points="""
         [wishbone.iomodule]
         Broker=wb_broker.broker:Broker
