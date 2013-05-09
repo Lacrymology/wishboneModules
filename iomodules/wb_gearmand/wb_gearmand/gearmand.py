@@ -63,7 +63,6 @@ class Gearmand(Greenlet, QueueFunctions, Block):
         self.workers=kwargs.get('workers',1)
         key = self.secret[0:32]
         self.cipher=AES.new(key+chr(0)*(32-len(key)))
-        self.worker_instances=[]
         self.background_instances=[]
         self.inbox=Queue(None)
 
@@ -81,11 +80,12 @@ class Gearmand(Greenlet, QueueFunctions, Block):
     def restartOnFailure(self):
         while self.block():
             try:
-                self.worker_instances.append(GearmanWorker(self.hostnames))
-                self.worker_instances[-1].register_task('perfdata', self.decode)
-                self.worker_instances[-1].work()
+                worker_instance=GearmanWorker(self.hostnames)
+                worker_instance.register_task('perfdata', self.decode)
+                worker_instance.work()
             except Exception as err:
                 self.logging.debug ('Connection to gearmand failed. Reason: %s'%err)
+                sleep(1)
 
     def shutdown(self):
         self.logging.info('Shutdown')
