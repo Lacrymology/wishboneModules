@@ -25,7 +25,6 @@ import setuptools
 import inspect
 from os import path
 from sys import version_info
-from wb_tippingbucket import TippingBucket
 
 PROJECT = 'wb_tippingbucket'
 VERSION = '0.2'
@@ -35,21 +34,27 @@ module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
 pth_dir="./%s-%s-py%s.egg"%(PROJECT,
     VERSION,
     '.'.join(str(i) for i in version_info[0:2]))
-pth=open ("%s/%s.pth"%(module_path,PROJECT),'w')
+pth=open ("%s.pth"%(PROJECT),'w')
 pth.write(pth_dir)
 pth.close()
 
+try:
+    with open('README.md') as file:
+        long_description = file.read()
+except:
+    long_description=''
 
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
     description="A Wishbone module which buffers data.",
-    long_description=TippingBucket.__doc__,
+    long_description=long_description,
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
     install_requires=['wishbone'],
     packages=setuptools.find_packages(),
     include_package_data=True,
+    data_files=[(module_path, ["%s.pth"%(PROJECT)])],
     entry_points="""
         [wishbone.module]
         TippingBucket=wb_tippingbucket.tippingbucket:TippingBucket

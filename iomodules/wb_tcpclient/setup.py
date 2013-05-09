@@ -34,13 +34,15 @@ module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
 pth_dir="./%s-%s-py%s.egg"%(PROJECT,
     VERSION,
     '.'.join(str(i) for i in version_info[0:2]))
-pth=open ("%s/%s.pth"%(module_path,PROJECT),'w')
+pth=open ("%s.pth"%(PROJECT),'w')
 pth.write(pth_dir)
 pth.close()
 
-with open('README.md') as file:
-    long_description = file.read()
-
+try:
+    with open('README.md') as file:
+        long_description = file.read()
+except:
+    long_description=''
 
 setuptools.setup(
     name=PROJECT,
@@ -52,6 +54,7 @@ setuptools.setup(
     install_requires=['wishbone'],
     packages=setuptools.find_packages(),
     include_package_data=True,
+    data_files=[(module_path, ["%s.pth"%(PROJECT)])],
     entry_points="""
         [wishbone.iomodule]
         TCPClient=wb_tcpclient.tcpclient:TCPClient
