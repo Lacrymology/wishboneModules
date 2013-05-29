@@ -22,13 +22,12 @@
 #
 #
 
-from wishbone.toolkit import PrimitiveActor
+from wishbone import Actor
 from gevent import socket,sleep
 from random import randint
-import logging
+from wishbone.tools import Measure
 
-
-class TCPClient(PrimitiveActor):
+class TCPClient(Actor):
     '''**A Wishbone IO module which writes data to a TCP socket.**
 
     Writes data to a tcp socket.
@@ -38,8 +37,9 @@ class TCPClient(PrimitiveActor):
 
     Parameters:
 
-        - name (str):   The instance name when initiated.
-        - pool (list):  A list of addresses:port entries.
+        - name (str):       The instance name when initiated.
+        - pool (list):      A list of addresses:port entries.
+        - stream (bool):    Keep the connection open.
 
     Queues:
 
@@ -48,12 +48,9 @@ class TCPClient(PrimitiveActor):
     '''
 
     def __init__(self, name, pool=[]):
-        PrimitiveActor.__init__(self, name)
-
+        Actor.__init__(self, name, limit=0)
         self.name=name
         self.pool=self.__splitAddress(pool)
-        self.logging = logging.getLogger( name )
-        self.logging.info('Initialiazed.')
 
     def __splitAddress(self, pool):
         p=[]
@@ -62,14 +59,15 @@ class TCPClient(PrimitiveActor):
             p.append((address,int(port)))
         return p
 
-    def consume(self, doc):
+    @Measure.runTime
+    def consume(self, event):
 
-        if isinstance(doc["data"],list):
-            data = ''.join(doc["data"])
+        if isinstance(event["data"],list):
+            data = ''.join(event["data"])
         else:
-            data = doc["data"]
+            data = event["data"]
 
-        while self.block()==True:
+        while self.loop()==True:
             try:
                 destination = self.pool[randint(0,len(self.pool)-1)]
                 s=socket.socket()
@@ -79,8 +77,9 @@ class TCPClient(PrimitiveActor):
                 s.close()
                 break
             except Exception as err:
-                self.logging.warn("Failed to write data to %s. Reason: %s"%(str(destination), err))
+                self.logging.warning("Failed to write data to %s. Reason: %s"%(str(destination), err))
                 sleep(1)
+        print "yep"
 
     def shutdown(self):
         self.logging.info('Shutdown')

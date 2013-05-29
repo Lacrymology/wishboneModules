@@ -22,13 +22,12 @@
 #
 #
 
-from wishbone.toolkit import PrimitiveActor
+from wishbone import Actor
 from time import time
 from gevent import sleep, spawn
 from gevent.event import Event
-from gevent import monkey;monkey.patch_all()
 
-class TippingBucket(PrimitiveActor):
+class TippingBucket(Actor):
 
     '''**TippingBucket is a Wishbone module which buffers data.**
 
@@ -67,7 +66,7 @@ class TippingBucket(PrimitiveActor):
 
     def __init__(self, name, age=0, size=0, events=0, predefined_header=None):
 
-        PrimitiveActor.__init__(self, name)
+        Actor.__init__(self, name)
         self.age = age
         self.size = size
         self.events = events
@@ -112,11 +111,11 @@ class TippingBucket(PrimitiveActor):
         '''Flushes the buffer.'''
 
         if self.predefined_header == None:
-            self.putData({"header":self.buff_header, "data":self.buff})
+            self.queuepool.outbox.put({"header":self.buff_header, "data":self.buff})
         else:
-            self.putData({"header":self.predefined_header, "data":self.buff})
+            self.queuepool.outbox.put({"header":self.predefined_header, "data":self.buff})
         self.resetBuffer()
-        sleep(0)
+        sleep()
 
     def resetBuffer(self):
         '''Resets the counters.'''
