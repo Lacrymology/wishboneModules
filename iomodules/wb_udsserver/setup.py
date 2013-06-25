@@ -29,16 +29,6 @@ from sys import version_info
 PROJECT = 'wb_udsserver'
 VERSION = '0.2'
 
-#The goal is to have a .pth file so it can be included when creating RPMs
-module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
-pth_dir="./%s-%s-py%s.egg"%(PROJECT,
-    VERSION,
-    '.'.join(str(i) for i in version_info[0:2]))
-pth=open ("%s/%s.pth"%(module_path,PROJECT),'w')
-pth.write(pth_dir)
-pth.close()
-
-
 setuptools.setup(
     name=PROJECT,
     version=VERSION,

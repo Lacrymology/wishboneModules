@@ -22,7 +22,7 @@
 #
 #
 
-from wishbone.toolkit import PrimitiveActor
+from wishbone import Actor
 from os import remove, path, makedirs, listdir
 from itertools import cycle
 import os
@@ -31,21 +31,23 @@ import stat
 import logging
 
 
-class UDSClient(PrimitiveActor):
+class UDSClient(Actor):
     '''**A Wishbone IO module which writes data into a Unix domain socket.**
 
     Writes data into a Unix domain socket.
 
-    If pool is True, path is expected to be a directory containing socket files over
-    which the module will spread outgoing events.
-    If pool if False, path is a socket file to which all outgoing events will be
-    submitted.
+    If more than one socket is provided, events are written in a
+    round-robin way.
 
     Parameters:
 
-        - name (str):   The instance name when initiated.
-        - pool (bool):  When True expects path to be a pool of sockets.
-        - path (str):   The absolute path of the socket file or the socket pool.
+        - name (str):       The instance name when initiated.
+        - path (str):       The absolute path of the socket file or the socket pool.
+        - delimiter (str):  When incoming data is a list, the data is joined and
+                            submitted with the given delimiter.
+        - limit (int):      The number of simultaneous greenthreads submitting events.
+                            0 (or 1) for serial behavior.
+        - stream (bool):    When True keeps the connection open.
 
     Queues:
 
@@ -53,69 +55,47 @@ class UDSClient(PrimitiveActor):
         - outbox:   Outgoing events destined to the outside world.
     '''
 
-    def __init__(self, name, pool=True, path="/tmp"):
-        PrimitiveActor.__init__(self, name)
-
+    def __init__(self, name, path=["/tmp/wishbone.socket"], delimiter="", limit=0, stream=False ):
+        Actor.__init__(self, name, limit=limit)
         self.name=name
-        self.pool=pool
         self.path=path
+        self.delimiter=delimiter
         self.stream=stream
-        self.reaptime=reaptime
 
-        self.socketpool=[]
-        self.logging = logging.getLogger( name )
-        self.poolReaper()
+        if self.stream == False:
+            self.next=cycle(path)
+            self.sendSocket = self.__recreateSocket
+        else:
+            self.__setupSockets()
+            self.sendSocket = self.__streamSocket
         self.logging.info('Initialiazed.')
 
     def consume(self, event):
         if isinstance(event['data'],list):
-            self.sendToSocket(''.join(event['data']))
+            self.sendSocket(self.delimiter.join(event['data']))
         else:
-            self.sendToSocket(event["data"])
+            self.sendSocket(event["data"])
 
-    def sendToSocket(self, data):
-        while self.block():
+    def __streamSocket(self, data):
+        pass
+
+    def __recreateSocket(self, data):
+        while self.loop():
             try:
+                location = self.next.next()
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                next_socket = self.socketcycle.next()
-                sock.connect(next_socket)
+                sock.connect(location)
                 sock.sendall(data)
                 self.logging.debug('Data send.')
                 sock.close()
                 break
             except Exception as err:
-                self.logging.warn('Connecting failed. Will try again in a second. Reason: %s'%(err))
-                self.poolReaper()
+                self.logging.warn('Connecting failed to %s. Will try again in a second. Reason: %s'%(location, err))
                 sleep(1)
 
-    def scheduleReaper(self):
-        while self.block():
-            self.poolReaper()
-            sleep(self.reaptime)
-
-    def poolReaper(self):
-        '''Runs over the socket pool to build a list of available Unix Domain Sockets
-        to choose from.'''
-
-        socketlist=[]
-        self.logging.info("Running poolReaper on %s"%self.path)
-        for file in listdir(self.path):
-            filename = "%s/%s"%(self.path,file)
-            try:
-                mode=os.stat(filename)
-                if stat.S_ISSOCK(mode[0]) == True:
-                    if os.access(filename,os.W_OK) == True:
-                        socketlist.append(filename)
-                    else:
-                        self.logging.warn("%s is not writable."%filename)
-                else:
-                    self.logging.warn("%s is not a socket file."%filename)
-            except Exception as err:
-                self.logging.warn("There was a problem processing %s. Reason: %s"%(file,err))
-        if self.socketpool != socketlist:
-            self.socketpool = socketlist
-            self.socketcycle = cycle(self.socketpool)
+    def __setupSockets(self):
+        pass
 
     def shutdown(self):
         self.logging.info('Shutdown')

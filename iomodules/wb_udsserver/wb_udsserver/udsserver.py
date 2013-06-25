@@ -22,15 +22,17 @@
 #
 #
 
-from os import remove, path, makedirs
+from os import remove, path, makedirs, getpid
 from gevent.server import StreamServer
 from gevent import Greenlet, socket, sleep
-from wishbone.toolkit import QueueFunctions, Block
+from gevent.pool import Pool
+from gevent import spawn
+from wishbone import Actor
 from uuid import uuid4
 import logging
 
 
-class UDSServer(Greenlet, QueueFunctions, Block):
+class UDSServer(Actor):
     '''**A Wishbone IO module which accepts external input from a unix domain socket.**
 
     Creates a Unix domain socket to which data can be streamed.
@@ -38,30 +40,18 @@ class UDSServer(Greenlet, QueueFunctions, Block):
     Parameters:
 
         - name (str):           The instance name when initiated.
-        - pool (bool):          When true path is considered to be a directory in
-                                which a socket with random name is created.
-        - path (str):           The location of the directory or socket file.
+        - path (str):           The absolute path of the socket file.
         - delimiter (str):      The delimiter which separates multiple messages in
                                 a stream of data.
+        - pool (int):           The number of simultaneous connections allowed.
 
     Queues:
 
         - inbox:       Data coming from the outside world.
 
-    pool
-    ~~~~
-    When pool is set to True, the path value will be considered a directory.
-    This module will then create a socket file with a random name in it.
-    When pool is set to False, then path value will be considered the filename of
-    the socket file.
-    When multiple, parallel instances are started we would have the different
-    domain socket servers bind to the same name, which will not work.  Creating a
-    random name inside a directory created a pool of sockets to which a client can
-    round-robin.
-
     delimiter
     ~~~~~~~~~
-    When no delimiter is defined, all incoming data between connect and disconnect
+    When no delimiter is defined (None), all incoming data between connect and disconnect
     is considered to be 1 Wishbone message/event.
     When a delimiter is defined, Wishbone tries to extract multiple events out of
     a data stream.  Wishbone will check each line of data whether it ends with the
@@ -72,34 +62,23 @@ class UDSServer(Greenlet, QueueFunctions, Block):
     data.
     '''
 
-    def __init__(self, name, pool=True, path="/tmp", delimiter=None):
-        Greenlet.__init__(self)
-        QueueFunctions.__init__(self)
-        Block.__init__(self)
+    def __init__(self, name, path="/tmp/%s.socket"%(getpid()), delimiter=None, pool=10000):
+        Actor.__init__(self, name)
         self.name=name
-        self.pool=pool
         self.path=path
         self.delimiter=delimiter
-        self.logging = logging.getLogger( name )
-        (self.sock, self.filename)=self.__setupSocket()
+        self.pool=pool
+        (self.sock, self.filename)=self.__setupSocket(path)
         self.logging.info("Initialiazed")
 
-    def __setupSocket(self):
-        if self.pool == True:
-            if not path.exists(self.path):
-                makedirs(self.path)
-            filename = "%s/%s"%(self.path,uuid4())
-            self.logging.info("Socket pool %s created."%filename)
-        else:
-            filename = self.path
-            self.logging.info("Socket file %s created."%filename)
-
+    def __setupSocket(self, path):
         sock=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setblocking(0)
-        sock.bind(filename)
+        sock.bind(path)
         sock.listen(50)
-        return (sock, filename)
+        self.logging.info("Socket file %s created."%path)
+        return (sock, path)
 
     def handle(self, sock, address):
         sfile = sock.makefile()
@@ -107,13 +86,13 @@ class UDSServer(Greenlet, QueueFunctions, Block):
 
         if self.delimiter == None:
             chunk = sfile.readlines()
-            self.putData({'header':{},'data':''.join(chunk)}, queue='inbox')
+            self.queuepool.inbox.put({'header':{},'data':''.join(chunk)})
         else:
             while self.block()==True:
                 chunk = sfile.readline()
                 if chunk == "":
                     if len(data) > 0:
-                        self.putData({'header':{},'data':''.join(data)}, queue='inbox')
+                        self.queuepool.inbox.put({'header':{},'data':''.join(data)})
                     break
                 else:
                     if chunk.endswith(self.delimiter):
@@ -121,18 +100,22 @@ class UDSServer(Greenlet, QueueFunctions, Block):
                         if chunk != '':
                             data.append(chunk)
                         if len(data) > 0:
-                            self.putData({'header':{},'data':''.join(data)}, queue='inbox')
+                            self.queuepool.inbox.put({'header':{},'data':''.join(data)})
                             data=[]
                     else:
                         data.append(chunk)
         sfile.close()
         sock.close()
 
-    def _run(self):
-        try:
-            StreamServer(self.sock, self.handle).serve_forever()
-        except KeyboardInterrupt:
-            self.shutdown()
+
+    def start(self):
+        spawn(self.startServer)
+
+    def startServer(self):
+        pool = Pool(self.pool)
+        StreamServer(self.sock, self.handle, spawn=pool).start()
+        self.block()
+        self.shutdown()
 
     def shutdown(self):
         remove(self.filename)

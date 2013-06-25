@@ -68,18 +68,18 @@ class TCPClient(Actor):
             data = event["data"]
 
         while self.loop()==True:
-            try:
+            #try:
                 destination = self.pool[randint(0,len(self.pool)-1)]
                 s=socket.socket()
-                self.logging.debug("Writing data to %s"%(str(destination)))
+                s.settimeout(1)
                 s.connect(destination)
-                s.send(data)
+                self.logging.debug("Writing data to %s"%(str(destination)))
+                s.sendall(data)
                 s.close()
                 break
-            except Exception as err:
-                self.logging.warning("Failed to write data to %s. Reason: %s"%(str(destination), err))
-                sleep(1)
-        print "yep"
+            # except Exception as err:
+            #     self.logging.warning("Failed to write data to %s. Reason: %s"%(str(destination), err))
+            #     sleep(1)
 
     def shutdown(self):
         self.logging.info('Shutdown')
