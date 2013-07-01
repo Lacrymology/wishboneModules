@@ -22,15 +22,15 @@
 #
 #
 
-import logging
-from wishbone.toolkit import QueueFunctions, Block, TimeFunctions
-from gevent import Greenlet, spawn, sleep
+from wishbone import Actor
+from gevent import spawn, sleep
+from gevent.event import Event
+from gevent import monkey;monkey.patch_socket()
 import amqp
 from amqp.exceptions import NotFound
 from amqp.exceptions import ConnectionError
-from gevent import monkey;monkey.patch_all()
 
-class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
+class Broker(Actor):
     '''**A Wishbone IO module which handles AMQP input and output.**
 
     This module handles the IO from and to a message broker.  This module has
@@ -82,12 +82,13 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
     '''
 
     def __init__(self, name, host, vhost='/', username='guest', password='guest', prefetch_count=1, no_ack=True, consume_queue=False, delivery_mode=2, auto_create=True ):
-
-        Greenlet.__init__(self)
-        Block.__init__(self)
-        QueueFunctions.__init__(self)
+        Actor.__init__(self, name, setupbasic=False, limit=0)
+        self.createQueue("inbox")
+        self.createQueue("outbox")
+        self.createQueue("acknowledge")
+        self.registerConsumer(self.produceMessage, self.queuepool.outbox)
+        self.registerConsumer(self.acknowledgeMessage, self.queuepool.acknowledge)
         self.name=name
-        self.logging = logging.getLogger( self.name )
         self.logging.info('Initiated')
         self.host=host
         self.vhost=vhost
@@ -98,92 +99,67 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         self.consume_queue = consume_queue
         self.delivery_mode=delivery_mode
         self.auto_create=auto_create
-        self.queue_hist={}
         self.exchange_hist={}
-        self.createQueue("acknowledge")
+        self.queue_hist={}
+        self.waiter=Event()
+        self.waiter.clear()
 
     def safe(fn):
         '''decorator function to wrap potentially failing broker IO commands.'''
 
         def do(self, *args, **kwargs):
             sleep_seconds=1
-            while self.block() == True:
+            while self.loop() == True:
                 try:
-                    fn(self, *args, **kwargs)
-                    break
+                    return fn(self, *args, **kwargs)
                 except NotFound as err:
-                    self.logging.error("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
+                    self.logging.critical("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
                     if self.auto_create == True:
-                        self.brokerCreateQueue(kwargs["consume_queue"])
-                except ConnectionError as err:
-                    #sleep_seconds*=2
-                    self.logging.error("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
+                        self.brokerCreateQueue(self.consume_queue)
                 except Exception as err:
                     #sleep_seconds*=2
-                    self.logging.error("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
+                    self.logging.critical("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
+                    self.waiter.set()
                 sleep(sleep_seconds)
                 self.logging.info("Sleeping for %s second."%sleep_seconds)
         return do
 
-    def _run(self):
-        '''Blocking function which start consumption and producing of data.  It is executed when issuing the Greenlet start()'''
+    def preHook(self):
+        '''
+        Initial setup
+        '''
 
-        self.logging.info('Started')
-        self.brokerSetupConnection(host=self.host, username=self.username, password=self.password, virtual_host=self.vhost,
-            prefetch_count=self.prefetch_count,consume_queue=self.consume_queue,no_ack=self.no_ack
-        )
-        outgoing = spawn(self.continuousProduceBroker)
-        ack = spawn(self.continuousAcknowledgeBroker)
-
-        if self.consume_queue != False:
-            self.continuousConsumeBroker()
-        else:
-            self.wait()
-
-    def continuousConsumeBroker(self):
-        '''Blocking function which consumes all data from the defined broker queue.'''
-
-        while self.block() == True:
-            try:
-                while self.incoming.callbacks:
-                    self.incoming.wait()
-                sleep(0.1)
-            except Exception as err:
-                self.logging.warn('Connection to broker broken.  Reason: %s'%(err))
-                self.brokerSetupConnection(host=self.host, username=self.username, password=self.password, virtual_host=self.vhost,
-                            prefetch_count=self.prefetch_count,consume_queue=self.consume_queue,no_ack=self.no_ack)
-
-    def continuousProduceBroker(self):
-        '''Submits all data from self.outbox into the broker by calling the produce() funtion untill interrupted.'''
-
-        while self.block() == True:
-            self.brokerProduceMessage(self.getData("outbox"))
-
-    def continuousAcknowledgeBroker(self):
-        '''A blocking function which continuously consumes the "acknowledge" queue untill interrupted.'''
-
-        while self.block() == True:
-            self.brokerAcknowledgeMessage(self.getData("acknowledge"))
+        self.setupConnection()
+        spawn(self.connectionMonitor)
 
     @safe
-    def brokerSetupConnection(self,host,username,password,virtual_host,prefetch_count,consume_queue,no_ack):
-        '''Handles connection and channel creation.  Blocks and retries untill successful or interrupted.'''
+    def setupConnection(self):
 
-        self.conn = amqp.Connection(host="%s:5672"%(host), userid=username, password=password, virtual_host=virtual_host)
-        if consume_queue != False:
-            self.incoming = self.conn.channel()
-            self.incoming.basic_qos(prefetch_size=0, prefetch_count=prefetch_count, a_global=False)
-            self.incoming.basic_consume(queue=consume_queue, callback=self.brokerConsumeMessage, no_ack=no_ack, consumer_tag="incoming")
-        else:
-            self.logging.debug("No queue to consume defined hence not consuming anything.")
-        self.outgoing = self.conn.channel()
-        self.logging.info('Connected to broker')
+        self.queue_hist={}
+        self.exchange_hist={}
+
+        #Setup consuming connection
+        if self.consume_queue != False:
+            self.consumer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
+            self.consumer_channel = self.consumer.channel()
+            self.consumer_channel.basic_qos(prefetch_size=0, prefetch_count=self.prefetch_count, a_global=False)
+            self.consumer_channel.basic_consume(queue=self.consume_queue, callback=self.consumeMessage, no_ack=self.no_ack, consumer_tag="incoming")
+            self.logging.info('Connected to broker to consume.')
+
+        #Setup producing connection
+        self.producer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
+        self.producer_channel = self.producer.channel()
+        self.logging.info('Connected to broker to produce.')
+
+    def connectionMonitor(self):
+        while self.loop():
+            self.waiter.wait()
+            self.setupConnection()
+            self.waiter.clear()
 
     @safe
     def brokerCreateQueue(self, queue_name):
-        admin = self.conn.channel()
-        admin.queue_declare( queue=queue_name, auto_delete=False, nowait=True)
-        admin.close()
+        self.producer_channel.queue_declare(queue=queue_name, auto_delete=False, nowait=False)
         self.logging.info("Creating queue %s"%(queue_name))
 
     @safe
@@ -191,7 +167,7 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         '''Create an exchange.'''
         if exchange != "":
             self.logging.info("Creating exchange %s."%exchange)
-            self.outgoing.exchange_declare(exchange, "direct", auto_delete=False, nowait=True)
+            self.producer_channel.exchange_declare(exchange, "direct", auto_delete=False, nowait=False)
         else:
             self.logging.warn("Will not create default exchange.")
 
@@ -200,17 +176,11 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
         '''Create binding between exchange and queue.'''
         if exchange != "":
             self.logging.info("Createing binding between exchange %s and queue %s"%(exchange, key))
-            self.outgoing.queue_bind(key, exchange=exchange, routing_key=key, nowait=True)
+            self.producer_channel.queue_bind(key, exchange=exchange, routing_key=key, nowait=False)
 
     @safe
-    @TimeFunctions.do
-    def brokerAcknowledgeMessage(self, ack):
-        self.incoming.basic_ack(ack)
-
-    @safe
-    @TimeFunctions.do
-    def brokerProduceMessage(self,message):
-        '''Is called upon each message going to the broker infrastructure.'''
+    def produceMessage(self, message):
+        '''Is called upon each event going to the broker infrastructure.'''
 
         if self.auto_create==True:
             self.createBrokerConfig(message["header"]["broker_exchange"],message["header"]["broker_key"])
@@ -224,13 +194,23 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
             msg = amqp.Message(data)
             msg.properties["delivery_mode"] = self.delivery_mode
 
-            self.outgoing.basic_publish(msg,exchange=message['header']['broker_exchange'],routing_key=message['header']['broker_key'])
+            self.producer_channel.basic_publish(msg,exchange=message['header']['broker_exchange'],routing_key=message['header']['broker_key'])
             if message['header'].has_key('broker_tag') and self.no_ack == False:
-                self.brokerAcknowledgeMessage(message['header']['broker_tag'])
+                self.producer_channel.basic_ack(message['header']['broker_tag'])
         else:
             self.logging.warn('Received data for broker without exchange or routing key in header. Purged.')
             if message['header'].has_key('broker_tag') and self.no_ack == False:
-                self.brokerAcknowledgeMessage(message['header']['broker_tag'])
+                self.producer_channel.basic_ack(message['header']['broker_tag'])
+
+    @safe
+    def acknowledgeMessage(self, event):
+        self.consumer_channel.basic_ack(event)
+
+    def consumeMessage(self, message):
+        '''Is called upon each message coming from the broker infrastructure.'''
+
+        self.queuepool.inbox.put({'header':{'broker_tag':message.delivery_tag},'data':message.body})
+        self.logging.debug('Data received from broker.')
 
     def createBrokerConfig(self, exchange, key):
         '''Create the provided exchange a queue with the keyname and binding.'''
@@ -243,14 +223,6 @@ class Broker(Greenlet, QueueFunctions, Block, TimeFunctions):
             self.queue_hist[key]=True
             self.brokerCreateQueue(key)
             self.brokerCreateBinding(exchange,key)
-
-    @TimeFunctions.do
-    def brokerConsumeMessage(self,message):
-        '''Is called upon each message coming from the broker infrastructure.'''
-
-        self.putData({'header':{'broker_tag':message.delivery_tag},'data':message.body}, queue='inbox')
-        self.logging.debug('Data received from broker.')
-        sleep()
 
     def shutdown(self):
         '''This function is called on shutdown().'''
