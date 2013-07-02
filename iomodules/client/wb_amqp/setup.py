@@ -26,8 +26,8 @@ import inspect
 from os import path
 from sys import version_info
 
-PROJECT = 'wb_tcpclient'
-VERSION = '0.4'
+PROJECT = 'wb_broker'
+VERSION = '0.3'
 
 #The goal is to have a .pth file so it can be included when creating RPMs
 module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
@@ -47,16 +47,15 @@ except:
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
-    description="A Wishbone IO module which writes data to a TCP socket.",
+    description="A Wishbone AMQP client module.",
     long_description=long_description,
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
-    install_requires=['wishbone'],
+    install_requires=['wishbone','amqp'],
     packages=setuptools.find_packages(),
     include_package_data=True,
-    data_files=[(module_path, ["%s.pth"%(PROJECT)])],
     entry_points="""
-        [wishbone.iomodule]
-        TCPClient=wb_tcpclient.tcpclient:TCPClient
+        [wishbone.client]
+        Broker=wb_amqp.amqp:AMQP
     """
 )

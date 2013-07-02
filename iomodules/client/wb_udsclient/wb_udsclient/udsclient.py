@@ -55,7 +55,7 @@ class UDSClient(Actor):
         - outbox:   Outgoing events destined to the outside world.
     '''
 
-    def __init__(self, name, path=["/tmp/wishbone.socket"], delimiter="", limit=0, stream=False ):
+    def __init__(self, name, limit=0, path=["/tmp/wishbone.socket"], delimiter="", stream=False ):
         Actor.__init__(self, name, limit=limit)
         self.name=name
         self.path=path

@@ -1,13 +1,11 @@
-wb_broker
-=========
+wb_amqp
+=======
 
 **A Wishbone IO module which handles AMQP input and output.**
 
     This module handles the IO from and to a message broker.  This module has
     specifically been tested against RabbitMQ.  The module is meant to be resilient
     against disconnects and broker unavailability.
-
-    The module will currently not create any missing queues or exchanges.
 
     Acknowledging can can done in 2 ways:
 
@@ -43,5 +41,4 @@ wb_broker
         - inbox:              Messages coming from the broker.
         - outbox:             Messages destined for the broker.
         - acknowledge:        Message tags to acknowledge with the broker.
-
 

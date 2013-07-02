@@ -22,6 +22,4 @@
 #       
 #
 
-__version__= "0.1"
-
-from broker import Broker
+from wb_amqp import AMQP

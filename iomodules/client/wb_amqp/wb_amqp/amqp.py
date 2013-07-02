@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  broker.py
+#  wb_amqp.py
 #
 #  Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -30,7 +30,7 @@ import amqp
 from amqp.exceptions import NotFound
 from amqp.exceptions import ConnectionError
 
-class Broker(Actor):
+class AMQP(Actor):
     '''**A Wishbone IO module which handles AMQP input and output.**
 
     This module handles the IO from and to a message broker.  This module has
