@@ -131,6 +131,21 @@ class Broker(Actor):
 
         self.setupConnection()
         spawn(self.connectionMonitor)
+        if self.consume_queue != False:
+            spawn(self.drainEvents)
+
+    def connectionMonitor(self):
+        while self.loop():
+            self.waiter.wait()
+            self.setupConnection()
+            self.waiter.clear()
+
+    def drainEvents(self):
+        while self.loop():
+            try:
+                self.consumer_channel.wait()
+            except:
+                sleep(0.1)
 
     @safe
     def setupConnection(self):
@@ -150,12 +165,6 @@ class Broker(Actor):
         self.producer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
         self.producer_channel = self.producer.channel()
         self.logging.info('Connected to broker to produce.')
-
-    def connectionMonitor(self):
-        while self.loop():
-            self.waiter.wait()
-            self.setupConnection()
-            self.waiter.clear()
 
     @safe
     def brokerCreateQueue(self, queue_name):
@@ -182,10 +191,9 @@ class Broker(Actor):
     def produceMessage(self, message):
         '''Is called upon each event going to the broker infrastructure.'''
 
-        if self.auto_create==True:
-            self.createBrokerConfig(message["header"]["broker_exchange"],message["header"]["broker_key"])
-
         if message["header"].has_key('broker_exchange') and message["header"].has_key('broker_key'):
+            if self.auto_create==True:
+                self.createBrokerConfig(message["header"]["broker_exchange"],message["header"]["broker_key"])
 
             if isinstance(message["data"], list):
                 data = ''.join(message["data"])
