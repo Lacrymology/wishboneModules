@@ -26,17 +26,8 @@ import inspect
 from os import path
 from sys import version_info
 
-PROJECT = 'wb_broker'
+PROJECT = 'wb_amqp'
 VERSION = '0.3'
-
-#The goal is to have a .pth file so it can be included when creating RPMs
-module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
-pth_dir="./%s-%s-py%s.egg"%(PROJECT,
-    VERSION,
-    '.'.join(str(i) for i in version_info[0:2]))
-pth=open ("%s.pth"%(PROJECT),'w')
-pth.write(pth_dir)
-pth.close()
 
 try:
     with open('README.md') as file:
@@ -53,9 +44,9 @@ setuptools.setup(
     url="https://github.com/smetj/wishboneModules",
     install_requires=['wishbone','amqp'],
     packages=setuptools.find_packages(),
-    include_package_data=True,
+    zip_safe=True,
     entry_points="""
         [wishbone.client]
-        Broker=wb_amqp.amqp:AMQP
+        AMQP=wb_amqp.wbamqp:AMQP
     """
 )

@@ -121,6 +121,7 @@ class AMQP(Actor):
                     self.logging.critical("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
                     self.waiter.set()
                 sleep(sleep_seconds)
+                sleep()
                 self.logging.info("Sleeping for %s second."%sleep_seconds)
         return do
 
@@ -153,6 +154,11 @@ class AMQP(Actor):
         self.queue_hist={}
         self.exchange_hist={}
 
+        #Setup producing connection
+        self.producer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
+        self.producer_channel = self.producer.channel()
+        self.logging.info('Connected to broker to produce.')
+
         #Setup consuming connection
         if self.consume_queue != False:
             self.consumer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
@@ -160,11 +166,6 @@ class AMQP(Actor):
             self.consumer_channel.basic_qos(prefetch_size=0, prefetch_count=self.prefetch_count, a_global=False)
             self.consumer_channel.basic_consume(queue=self.consume_queue, callback=self.consumeMessage, no_ack=self.no_ack, consumer_tag="incoming")
             self.logging.info('Connected to broker to consume.')
-
-        #Setup producing connection
-        self.producer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
-        self.producer_channel = self.producer.channel()
-        self.logging.info('Connected to broker to produce.')
 
     @safe
     def brokerCreateQueue(self, queue_name):
