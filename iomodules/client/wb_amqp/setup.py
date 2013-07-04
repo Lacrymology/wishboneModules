@@ -27,7 +27,7 @@ from os import path
 from sys import version_info
 
 PROJECT = 'wb_amqp'
-VERSION = '0.3'
+VERSION = '0.4'
 
 try:
     with open('README.md') as file:
