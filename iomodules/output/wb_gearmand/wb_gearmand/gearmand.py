@@ -22,69 +22,70 @@
 #
 #
 
-import logging
-from wishbone.toolkit import QueueFunctions, Block
-from gevent import Greenlet, spawn, sleep
-from gevent.queue import Queue
+from wishbone import Actor
+from gevent import spawn, sleep
+from gevent import monkey;monkey.patch_socket()
 from gearman import GearmanWorker
 from Crypto.Cipher import AES
 import base64
-from gevent import monkey;monkey.patch_all()
 
-class Gearmand(Greenlet, QueueFunctions, Block):
+class Gearmand(Actor):
     '''
-    ***Consumes jobs from a Gearmand server.***
+    **A Wishbone IO module which consumes jobs from a Gearmand server.**
 
     Consumes jobs from a Gearmand server.
 
     Parameters:
-        * hostnames:    A list with hostname:port entries.
-                        Default: []
-                        Type: List
 
-        * secret:   The AES encryption key to decrypt Mod_gearman messages.
-                    Default: ''
-                    Type: String
+        - hostnames(list):  A list with hostname:port entries.
+                            Default: []
 
-        * workers:  The number of gearman workers within 1 process.
-                    Default: 1
-                    Type: Int
+        - secret(str):      The AES encryption key to decrypt Mod_gearman messages.
+                            Default: None
+
+        - workers(int):     The number of gearman workers within 1 process.
+                            Default: 1
+
+    When secret is none, no decryption is done.
+
     '''
 
-    def __init__(self, name, *args, **kwargs):
-        QueueFunctions.__init__(self)
-        Greenlet.__init__(self)
-        Block.__init__(self)
-        self.logging = logging.getLogger( name )
+    def __init__(self, name, hostnames=[], secret=None, workers=1):
+        Actor.__init__(self, name, limit=0)
         self.name = name
-        self.logging.info ( 'Initiated' )
-        self.hostnames=kwargs.get('hostnames',[])
-        self.secret=kwargs.get('secret','')
-        self.workers=kwargs.get('workers',1)
+        self.hostnames=hostnames
+        self.secret=secret
+        self.workers=workers
         key = self.secret[0:32]
         self.cipher=AES.new(key+chr(0)*(32-len(key)))
         self.background_instances=[]
-        self.inbox=Queue(None)
+        if self.secret == None:
+            self.decode = self.__plainJob
+        else:
+            self.decode = self.__encryptedJob
+        self.logging.info ( 'Initiated' )
 
-    def decode (self, gearman_worker, gearman_job):
-        self.logging.debug ('Data received.')
+    def __encryptedJob (self, gearman_worker, gearman_job):
         self.sendData({'header':{},'data':self.cipher.decrypt(base64.b64decode(gearman_job.data))}, queue='inbox')
         return "ok"
 
-    def _run(self):
+    def __plainJob(self, gearman_worker, gearman_job)
+        self.sendData({'header':{},'data':gearman_job.data}, queue='inbox')
+        return "ok"
+
+    def start(self):
         self.logging.info('Started')
         for _ in range (self.workers):
             spawn(self.restartOnFailure)
-        self.wait()
 
     def restartOnFailure(self):
-        while self.block():
+        while self.loop():
             try:
                 worker_instance=GearmanWorker(self.hostnames)
                 worker_instance.register_task('perfdata', self.decode)
                 worker_instance.work()
             except Exception as err:
-                self.logging.debug ('Connection to gearmand failed. Reason: %s'%err)
+                self.logging.warn ('Connection to gearmand failed. Reason: %s'%err)
                 sleep(1)
 
     def shutdown(self):

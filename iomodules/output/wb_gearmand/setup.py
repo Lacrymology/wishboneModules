@@ -27,16 +27,7 @@ from os import path
 from sys import version_info
 
 PROJECT = 'wb_gearmand'
-VERSION = '0.3'
-
-#The goal is to have a .pth file so it can be included when creating RPMs
-module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
-pth_dir="./%s-%s-py%s.egg"%(PROJECT,
-    VERSION,
-    '.'.join(str(i) for i in version_info[0:2]))
-pth=open ("%s.pth"%(PROJECT),'w')
-pth.write(pth_dir)
-pth.close()
+VERSION = '0.4'
 
 try:
     with open('README.md') as file:
@@ -53,8 +44,6 @@ setuptools.setup(
     url="https://github.com/smetj/wishboneModules",
     install_requires=['wishbone','gearman','pycrypto'],
     packages=setuptools.find_packages(),
-    include_package_data=True,
-    data_files=[(module_path, ["%s.pth"%(PROJECT)])],
     entry_points="""
         [wishbone.iomodule]
         Gearmand=wb_gearmand.gearmand:Gearmand
