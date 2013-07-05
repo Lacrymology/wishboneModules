@@ -24,7 +24,7 @@ wb_input_amqp
         - password (str):       The password to connect to the broker.
                                 Default: "guest"
 
-        - consume_queue (str):  The queue which should be consumed.
+        - queue (str):          The queue which should be consumed.
                                 Default: None
 
         - prefetch_count (int): The amount of messages consumed from the queue at once.

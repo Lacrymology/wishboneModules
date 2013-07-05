@@ -22,4 +22,4 @@
 #       
 #
 
-from wbamqp import AMQP
+from wb_output_amqp import AMQP

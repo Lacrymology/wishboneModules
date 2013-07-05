@@ -26,8 +26,8 @@ import inspect
 from os import path
 from sys import version_info
 
-PROJECT = 'wb_amqp'
-VERSION = '0.4'
+PROJECT = 'wb_output_amqp'
+VERSION = '0.1'
 
 try:
     with open('README.md') as file:
@@ -38,7 +38,7 @@ except:
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
-    description="A Wishbone AMQP client module.",
+    description="A Wishbone AMQP output module.",
     long_description=long_description,
     author="Jelle Smet",
     url="https://github.com/smetj/wishboneModules",
@@ -46,7 +46,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     zip_safe=True,
     entry_points="""
-        [wishbone.client]
-        AMQP=wb_amqp.wbamqp:AMQP
+        [wishbone.output]
+        amqp=wb_output_amqp.wb_output_amqp:AMQP
     """
 )

@@ -31,21 +31,9 @@ from amqp.exceptions import NotFound
 from amqp.exceptions import ConnectionError
 
 class AMQP(Actor):
-    '''**A Wishbone IO module which handles AMQP input and output.**
+    '''**A Wishbone AMQP output module.**
 
-    This module handles the IO from and to a message broker.  This module has
-    specifically been tested against RabbitMQ.  The module is meant to be resilient
-    against disconnects and broker unavailability.
-
-    The module will currently not create any missing queues or exchanges.
-
-    Acknowledging can can done in 2 ways:
-
-    - Messages which arrive to outbox and which have an acknowledge tag in the header
-      will be acknowledged with the broker.
-
-    - When a broker_tag is submitted to the "acknowledge" queue using sendRaw(),
-      then the message will be acknowledged at the broker.
+    This module produces messages to an AMQP message broker.
 
     All incoming messages should have at least following header:
 
@@ -55,48 +43,43 @@ class AMQP(Actor):
         - broker_key:         The routing key used when submitting data.
         - broker_tag:         The tag used to acknowledge the message from the broker.
 
-    Miscellaneous:
-
-        Outgoing Events (submitted to outbox) with a data field of <type list> will be joined into 1 string.
-        All other data fields are converted into <type str>.
-
-
     Parameters:
 
         - name (str):           The instance name when initiated.
+
         - host (str):           The name or IP of the broker.
-        - vhost (str):          The virtual host of the broker. By default this is '/'.
-        - username (str):       The username to connect to the broker.  By default this is 'guest'.
-        - password (str):       The password to connect to the broker.  By default this is 'guest'.
-        - consume_queue (str):  The queue which should be consumed. By default this is False. When False no queue is consumed.
-        - prefetch_count (str): The amount of messages consumed from the queue at once.
-        - no_ack (str):         No acknowledgments required? By default this is False (means acknowledgments are required.)
-        - delivery_mode (int):  The message delivery mode.  1 is Non-persistent, 2 is Persistent. Default=2
+                                Default: "localhost"
+
+        - vhost (str):          The virtual host of the broker.
+                                Default: "/"
+
+        - username (str):       The username to connect to the broker.
+                                Default: "guest"
+
+        - password (str):       The password to connect to the broker.
+                                Default: "guest"
+
+        - delivery_mode(int):   The message delivery mode.  1 is Non-persistent, 2 is Persistent.
+                                Default: 2
+
         - auto_create (bool):   When True missing exchanges and queues will be created.
+                                Default: True
 
     Queues:
 
-        - inbox:              Messages coming from the broker.
-        - outbox:             Messages destined for the broker.
-        - acknowledge:        Message tags to acknowledge with the broker.
+        - inbox:              Messages to the broker.
     '''
 
-    def __init__(self, name, host, vhost='/', username='guest', password='guest', prefetch_count=1, no_ack=True, consume_queue=False, delivery_mode=2, auto_create=True ):
+    def __init__(self, name, host, vhost='/', username='guest', password='guest', delivery_mode=2, auto_create=True ):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.createQueue("inbox")
-        self.createQueue("outbox")
-        self.createQueue("acknowledge")
-        self.registerConsumer(self.produceMessage, self.queuepool.outbox)
-        self.registerConsumer(self.acknowledgeMessage, self.queuepool.acknowledge)
+        self.registerConsumer(self.produceMessage, self.queuepool.inbox)
         self.name=name
         self.logging.info('Initiated')
         self.host=host
         self.vhost=vhost
         self.username=username
         self.password=password
-        self.prefetch_count=prefetch_count
-        self.no_ack=no_ack
-        self.consume_queue = consume_queue
         self.delivery_mode=delivery_mode
         self.auto_create=auto_create
         self.exchange_hist={}
@@ -132,21 +115,12 @@ class AMQP(Actor):
 
         self.setupConnection()
         spawn(self.connectionMonitor)
-        if self.consume_queue != False:
-            spawn(self.drainEvents)
 
     def connectionMonitor(self):
         while self.loop():
             self.waiter.wait()
             self.setupConnection()
             self.waiter.clear()
-
-    def drainEvents(self):
-        while self.loop():
-            try:
-                self.consumer_channel.wait()
-            except:
-                sleep(0.1)
 
     @safe
     def setupConnection(self):
@@ -158,14 +132,6 @@ class AMQP(Actor):
         self.producer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
         self.producer_channel = self.producer.channel()
         self.logging.info('Connected to broker to produce.')
-
-        #Setup consuming connection
-        if self.consume_queue != False:
-            self.consumer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
-            self.consumer_channel = self.consumer.channel()
-            self.consumer_channel.basic_qos(prefetch_size=0, prefetch_count=self.prefetch_count, a_global=False)
-            self.consumer_channel.basic_consume(queue=self.consume_queue, callback=self.consumeMessage, no_ack=self.no_ack, consumer_tag="incoming")
-            self.logging.info('Connected to broker to consume.')
 
     @safe
     def brokerCreateQueue(self, queue_name):
@@ -204,22 +170,10 @@ class AMQP(Actor):
             msg.properties["delivery_mode"] = self.delivery_mode
 
             self.producer_channel.basic_publish(msg,exchange=message['header']['broker_exchange'],routing_key=message['header']['broker_key'])
-            if message['header'].has_key('broker_tag') and self.no_ack == False:
-                self.producer_channel.basic_ack(message['header']['broker_tag'])
+
         else:
             self.logging.warn('Received data for broker without exchange or routing key in header. Purged.')
-            if message['header'].has_key('broker_tag') and self.no_ack == False:
-                self.producer_channel.basic_ack(message['header']['broker_tag'])
 
-    @safe
-    def acknowledgeMessage(self, event):
-        self.consumer_channel.basic_ack(event)
-
-    def consumeMessage(self, message):
-        '''Is called upon each message coming from the broker infrastructure.'''
-
-        self.queuepool.inbox.put({'header':{'broker_tag':message.delivery_tag},'data':message.body})
-        self.logging.debug('Data received from broker.')
 
     def createBrokerConfig(self, exchange, key):
         '''Create the provided exchange a queue with the keyname and binding.'''
