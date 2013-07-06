@@ -22,23 +22,22 @@
 #
 #
 
-import logging
 from random import choice, uniform, randint
-from wishbone.toolkit import QueueFunctions, Block
-from gevent import Greenlet, sleep
-from gevent.queue import Queue
+from gevent import sleep, spawn
+from wishbone import Actor
 
-class DictGenerator(Greenlet, QueueFunctions, Block):
-    '''**A WishBone IO module which generates dictionaries build out of words randomly
+class DictGenerator(Actor):
+
+    '''**A WishBone input module which generates dictionaries build out of words randomly
     chosen from a provided wordlist.**
-    
+
     This module allows you to generate an incoming stream of dictionaries.
 
     Parameters:
-        
+
         - name (str):               The instance name when initiated.
         - filename (str):           The absolute path+filename of a wordlist.
-        - randomize_keys (bool):    If true randomizes the keys.  Otherwise keys are sequencial numbers.
+        - randomize_keys (bool):    If true randomizes the keys.  Otherwise keys are sequential numbers.
         - num_values (bool):        If true values will be numeric and randomized.
         - num_values_min (int):     The minimum of a value when they are numeric.
         - num_values_max (int):     The maximum of a value when they are numeric.
@@ -46,19 +45,14 @@ class DictGenerator(Greenlet, QueueFunctions, Block):
         - max_elements (int):       The maximum number of elements per dictionary.
         - sleep (int):              The time in seconds to sleep between each message.
     Queues:
-    
-        - inbox:    "Incoming" data produced by DictGenerator itself.    
+
+        - inbox:    "Incoming" data produced by DictGenerator itself.
     '''
 
-    def __init__(self, name, filename, randomize_keys=True, num_values=False, num_values_min=0, num_values_max=1, min_elements=0, max_elements=1, sleep=0  ):
-
-        Greenlet.__init__(self)
-        QueueFunctions.__init__(self)
-        Block.__init__(self)
-        
-        self.logging = logging.getLogger( name )
+    def __init__(self, name, filename=None, randomize_keys=True, num_values=False, num_values_min=0, num_values_max=1, min_elements=1, max_elements=1, sleep=0  ):
+        Actor.__init__(self, name, setupbasic=False, limit=0)
+        self.createQueue("outbox")
         self.logging.info ( 'Initiated' )
-                
         self.name = name
         self.filename=filename
         self.randomize_keys=randomize_keys
@@ -66,56 +60,63 @@ class DictGenerator(Greenlet, QueueFunctions, Block):
         self.num_values_min=num_values_min
         self.num_values_max=num_values_max
         self.min_elements=min_elements
-        self.max_elements=max_elements        
+        self.max_elements=max_elements
         self.wordlist=self.readWordList(self.filename)
         self.sleep=sleep
-        
+
         self.key_number=-1
-        
+
         if self.randomize_keys == True:
             self.generateKey = self.pickWord
         else:
             self.generateKey = self.generateKeyNumber
-    
+
         if self.num_values == True:
             self.generateValue = self.generateValueNumber
         else:
             self.generateValue = self.pickWord
-           
-    def _run(self):
+
+    def start(self):
         self.logging.info('Started')
-        while self.block() == True:
+        spawn(self.__startGenerating)
+
+    def __startGenerating(self):
+        def do():
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
-            self.putData({"header":{},"data":data},'inbox')
-            self.key_number=-1
-            sleep(self.sleep)
-    
+            self.queuepool.outbox.put({"header":{},"data":data})
+        self.loopSwitch(do)
+
     def readWordList(self, filename):
         '''Reads and returns the wordlist as a tuple.'''
-        f = open(filename,"r")
-        words=f.readlines()
-        f.close()
-        return tuple(words)            
-    
+
+        if filename == None:
+            from wb_input_dictgenerator import brit_a_z
+            return brit_a_z.wordlist
+        else:
+            f = open(filename,"r")
+            words=f.readlines()
+            f.close()
+            return tuple(words)
+
     def pickWord(self):
         '''Returns a word as string from the wordlist.'''
-        while self.block() == True:
+        while self.loop() == True:
             word = choice(self.wordlist).rstrip()
             try:
                 return word.encode("ascii","ignore")
             except:
                 pass
-    
+
     def generateValueInteger(self):
         '''Returns a random number.'''
         return randint(self.num_values_min,self.num_values_max)
-    
+
     def generateKeyNumber(self):
         '''Generates a key by incrementing integer.'''
         self.key_number +=1
         return str(self.key_number)
-        
+
     def shutdown(self):
         self.logging.info('Shutdown')
