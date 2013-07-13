@@ -1,7 +1,7 @@
-wb_udsserver
+wb_input_uds
 ============
 
-**A Wishbone IO module which accepts external input from a unix domain socket.**
+**A Wishbone input module which listens on a unix domain socket.**
 
     Creates a Unix domain socket to which data can be streamed.
 

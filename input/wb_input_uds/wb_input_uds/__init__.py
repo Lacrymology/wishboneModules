@@ -24,4 +24,4 @@
 
 __version__= "0.1"
 
-from udsserver import UDSServer
+from uds import UDS

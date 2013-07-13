@@ -22,32 +22,33 @@
 #
 #
 
+from wishbone import Actor
 from os import remove, path, makedirs, getpid
 from gevent.server import StreamServer
-from gevent import Greenlet, socket, sleep
+from gevent import socket, sleep, spawn
 from gevent.pool import Pool
-from gevent import spawn
-from wishbone import Actor
-from uuid import uuid4
-import logging
 
-
-class UDSServer(Actor):
-    '''**A Wishbone IO module which accepts external input from a unix domain socket.**
+class UDS(Actor):
+    '''**A Wishbone input module which listens on a unix domain socket.**
 
     Creates a Unix domain socket to which data can be streamed.
 
     Parameters:
 
-        - name (str):           The instance name when initiated.
-        - path (str):           The absolute path of the socket file.
-        - delimiter (str):      The delimiter which separates multiple messages in
+        - name(str):            The instance name when initiated.
+
+        - path(str):            The absolute path of the socket file.
+
+        - delimiter(str):       The delimiter which separates multiple messages in
                                 a stream of data.
-        - pool (int):           The number of simultaneous connections allowed.
+
+        - max_connections(int): The number of simultaneous connections allowed.
+                                0 means "unlimited".
+                                Default: 0
 
     Queues:
 
-        - inbox:       Data coming from the outside world.
+        - outbox:   Data coming from the outside world.
 
     delimiter
     ~~~~~~~~~
@@ -62,14 +63,18 @@ class UDSServer(Actor):
     data.
     '''
 
-    def __init__(self, name, path="/tmp/%s.socket"%(getpid()), delimiter=None, pool=10000):
-        Actor.__init__(self, name)
+    def __init__(self, name, path="/tmp/%s.socket"%(getpid()), delimiter=None, max_connections=0):
+        Actor.__init__(self, name, setupbasic=False, limit=0)
+        self.createQueue("outbox")
         self.name=name
         self.path=path
         self.delimiter=delimiter
-        self.pool=pool
-        (self.sock, self.filename)=self.__setupSocket(path)
+        self.max_connections=max_connections
         self.logging.info("Initialiazed")
+
+    def preHook(self):
+        (self.sock, self.filename)=self.__setupSocket(self.path)
+        self.logging.info("UDS server listening on path %s."%(self.path))
 
     def __setupSocket(self, path):
         sock=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -86,13 +91,13 @@ class UDSServer(Actor):
 
         if self.delimiter == None:
             chunk = sfile.readlines()
-            self.queuepool.inbox.put({'header':{},'data':''.join(chunk)})
+            self.queuepool.outbox.put({'header':{},'data':''.join(chunk)})
         else:
             while self.block()==True:
                 chunk = sfile.readline()
                 if chunk == "":
                     if len(data) > 0:
-                        self.queuepool.inbox.put({'header':{},'data':''.join(data)})
+                        self.queuepool.outbox.put({'header':{},'data':''.join(data)})
                     break
                 else:
                     if chunk.endswith(self.delimiter):
@@ -100,7 +105,7 @@ class UDSServer(Actor):
                         if chunk != '':
                             data.append(chunk)
                         if len(data) > 0:
-                            self.queuepool.inbox.put({'header':{},'data':''.join(data)})
+                            self.queuepool.outbox.put({'header':{},'data':''.join(data)})
                             data=[]
                     else:
                         data.append(chunk)
@@ -109,14 +114,15 @@ class UDSServer(Actor):
 
 
     def start(self):
-        spawn(self.startServer)
+        spawn(self.serve)
 
-    def startServer(self):
-        pool = Pool(self.pool)
-        StreamServer(self.sock, self.handle, spawn=pool).start()
+    def serve(self):
+        if self.max_connections > 0:
+            pool = Pool(self.pool)
+            StreamServer(self.sock, self.handle, spawn=pool).start()
+        else:
+            StreamServer(self.sock, self.handle).start()
         self.block()
-        self.shutdown()
 
-    def shutdown(self):
-        remove(self.filename)
-        self.logging.info('Shutdown')
+    def postHook(self):
+        remove(self.path)

@@ -26,8 +26,8 @@ import inspect
 from os import path
 from sys import version_info
 
-PROJECT = 'wb_udsserver'
-VERSION = '0.2'
+PROJECT = 'wb_input_uds'
+VERSION = '0.1'
 
 setuptools.setup(
     name=PROJECT,

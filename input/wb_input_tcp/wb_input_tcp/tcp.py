@@ -55,7 +55,7 @@ class TCP(Actor):
 
     Queues:
 
-        - inbox:       Data coming from the outside world.
+        - outbox:       Data coming from the outside world.
 
 
     delimiter
@@ -80,7 +80,7 @@ class TCP(Actor):
         self.address=address
         self.delimiter=delimiter
         self.max_connections=max_connections
-        self.logging.info("Initiated")
+        self.logging.info("Initialized")
 
     def preHook(self):
         self.sock=self.__setupSocket(self.address, self.port)
