@@ -88,12 +88,11 @@ class DictGenerator(Actor):
         spawn(self.__startGenerating)
 
     def __startGenerating(self):
-        def do():
+        while self.loopContextSwitch():
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
             self.queuepool.outbox.put({"header":{},"data":data})
-        self.loopSwitch(do)
 
     def readWordList(self, filename):
         '''Reads and returns the wordlist as a tuple.'''

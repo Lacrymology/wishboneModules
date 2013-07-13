@@ -64,7 +64,7 @@ class NamedPipe(Actor):
         #               that is not working in pypy for the moment.
 
         self.logging.info('Started.')
-        def do():
+        while self.loopContextSwitch():
             try:
                 lines = os.read(self.fd, 4096).splitlines()
             except OSError:
@@ -75,9 +75,6 @@ class NamedPipe(Actor):
                         self.queuepool.outbox.put({'header':{},'data':line})
                 else:
                     sleep(0.1)
-
-        self.loopSwitch(do)
-
 
     def shutdown(self):
         self.fifo.close()

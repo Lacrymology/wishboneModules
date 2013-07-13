@@ -22,24 +22,48 @@
 #
 #
 import setuptools
-import inspect
-from os import path
-from sys import version_info
+import re
 
+###############################################################
+from wb_input_generator import Generator as docstring
 PROJECT = 'wb_input_namedpipe'
-VERSION = '0.1'
+MODULE = 'NamedPipe'
+AUTHOR = "Jelle Smet"
+URL = "https://github.com/smetj/wishboneModules"
+INSTALL_REQUIRES= [ ]
+ENTRY_POINTS={
+    "wishbone.input": [
+        "Generator = wb_input_namedpide.wb_input_generator.Generator"
+    ]
+}
+###############################################################
+
+VERSION = docstring.__version__
+
+try:
+    with open ("README.md", "w") as readme:
+        readme.write(PROJECT+"\n")
+        readme.write("="*len(PROJECT)+"\n\n")
+        readme.write("version: %s\n\n"%(VERSION))
+        readme.write(docstring.__doc__+"\n")
+except:
+    pass
+
+try:
+    with open('README.md') as readme:
+        long_description = readme.read()
+except:
+    long_description=''
 
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
-    description="A Wishbone input module which reads input from a named pipe.",
-    author="Jelle Smet",
-    url="https://github.com/smetj/wishboneModules",
-    install_requires=['wishbone'],
+    description=re.search("\*\*(.*?)\*\*",docstring.__doc__, re.DOTALL).group(1),
+    long_description=long_description,
+    author=AUTHOR,
+    url=URL,
+    install_requires=[ "wishbone" ] + INSTALL_REQUIRES,
     packages=setuptools.find_packages(),
-    include_package_data=True,
-    entry_points="""
-        [wishbone.input]
-        NamedPipe=wb_input_namedpipe.namedpipe:NamedPipe
-    """
+    zip_safe=True,
+    entry_points=ENTRY_POINTS
 )
