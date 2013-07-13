@@ -24,4 +24,4 @@
 
 __version__= "0.1"
 
-from tcpserver import TCPServer
+from namedpipe import NamedPipe

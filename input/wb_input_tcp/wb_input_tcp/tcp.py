@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  tcpserver.py
+#  tcp.py
 #
 #  Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -22,27 +22,36 @@
 #
 #
 
-from os import remove, path, makedirs
+from wishbone import Actor
 from gevent.server import StreamServer
-from gevent import Greenlet, socket, sleep
-from gevent.queue import Queue
-from wishbone.toolkit import QueueFunctions, Block
-from uuid import uuid4
-import logging
+from gevent.pool import Pool
+from gevent import spawn, socket, sleep
 
 
-class TCPServer(Greenlet, QueueFunctions, Block):
-    '''**A Wishbone IO module which accepts external input from a TCP socket.**
 
-    Creates a TCP socket to which data can be streamed.
+class TCP(Actor):
+    '''**A Wishbone input module which listens on a TCP socket.**
+
+    Creates a TCP socket to which data can be submitted.
 
     Parameters:
 
         - name (str):           The instance name when initiated.
+
         - address (str):        The address to bind to.
+                                Default: "0.0.0.0"
+
         - port (int):           The port to bind to.
+                                Default: 19283
+
         - delimiter (str):      The delimiter which separates multiple
                                 messages in a stream of data.
+                                Default: None
+
+        - max_connections(int): The maximum number of simultaneous
+                                connections.  0 means "unlimited".
+                                Default: 0
+
 
     Queues:
 
@@ -63,22 +72,29 @@ class TCPServer(Greenlet, QueueFunctions, Block):
     stream data.
     '''
 
-    def __init__(self, name, port, address='0.0.0.0', delimiter=None):
-        Greenlet.__init__(self)
-        QueueFunctions.__init__(self)
-        Block.__init__(self)
+    def __init__(self, name, port=19283, address='0.0.0.0', delimiter=None, max_connections=0):
+        Actor.__init__(self, name, setupbasic=False, limit=0)
+        self.createQueue("outbox")
         self.name=name
+        self.port=port
+        self.address=address
         self.delimiter=delimiter
-        self.logging = logging.getLogger( name )
-        self.sock=self.__setupSocket(address, port)
-        self.logging.info("TCP server initialized on address %s and port %s."%(address, port))
+        self.max_connections=max_connections
+        self.logging.info("Initiated")
+
+    def preHook(self):
+        self.sock=self.__setupSocket(self.address, self.port)
+        self.logging.info("TCP server initialized on address %s and port %s."%(self.address, self.port))
+
+    def start(self):
+        spawn(self.serve)
 
     def __setupSocket(self, address, port):
         sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setblocking(0)
         sock.bind((address, port))
-        sock.listen(50)
+        sock.listen(1)
         return sock
 
     def handle(self, sock, address):
@@ -87,13 +103,13 @@ class TCPServer(Greenlet, QueueFunctions, Block):
 
         if self.delimiter == None:
             chunk = sfile.readlines()
-            self.putData({'header':{},'data':''.join(chunk)}, queue='inbox')
+            self.queuepool.outbox.put({'header':{},'data':''.join(chunk)})
         else:
             while self.block()==True:
                 chunk = sfile.readline()
                 if chunk == "":
                     if len(data) > 0:
-                        self.putData({'header':{},'data':''.join(data)}, queue='inbox')
+                        self.queuepool.outbox.put({'header':{},'data':''.join(data)})
                     break
                 else:
                     if chunk.endswith(self.delimiter):
@@ -101,18 +117,21 @@ class TCPServer(Greenlet, QueueFunctions, Block):
                         if chunk != '':
                             data.append(chunk)
                         if len(data) > 0:
-                            self.putData({'header':{},'data':''.join(data)}, queue='inbox')
+                            self.queuepool.outbox.put({'header':{},'data':''.join(data)})
                             data=[]
                     else:
                         data.append(chunk)
         sfile.close()
         sock.close()
 
-    def _run(self):
-        try:
-            StreamServer(self.sock, self.handle).serve_forever()
-        except KeyboardInterrupt:
-            self.shutdown()
+    def serve(self):
+        if self.max_connections > 0:
+            pool = Pool(self.max_connections)
+            self.logging.debug("Setting up a connection pool of %s connections."%(self.max_connections))
+            StreamServer(self.sock, self.handle, spawn=pool).start()
+        else:
+            StreamServer(self.sock, self.handle).start()
+        self.block()
 
     def shutdown(self):
         self.logging.info('Shutdown')
