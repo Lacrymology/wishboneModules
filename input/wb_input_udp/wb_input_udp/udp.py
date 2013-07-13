@@ -1,65 +1,64 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  UDPServer.py
-#  
+#  udp.py
+#
 #  Copyright 2013 Jelle Smet development@smetj.net
-#  
+#
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
-#  
-#  
+#
+#
 
+from wishbone import Actor
 from gevent import spawn
 from gevent.queue import Queue
 from gevent.server import DatagramServer
-from wishbone.toolkit import QueueFunctions, Block
-import logging
 
-class UDPServer(DatagramServer, QueueFunctions, Block):
+class UDP(DatagramServer, Actor):
     '''A Wishbone module which handles UDP input.
-    
+
     Data received by the module is put into self.inbox
-    
+
     Parameters:
 
-        * name:       The name you want this module to be registered under.
-        * port:       The port on which the server should listen.
+        * name(str):        The name you want this module to be registered under.
+
+        * address(str):     The address to bind to.
+                            Default: "0.0.0.0"
+
+        * port(int):        The port on which the server should listen.
+                            default: 19283
     '''
- 
-    def __init__(self, name, port):
-        DatagramServer.__init__(self, ':'+str(port))
-        Block.__init__(self)
-        QueueFunctions.__init__(self)
-        self.logging = logging.getLogger( name )
+
+    def __init__(self, name, address="0.0.0.0", port=19283):
+        DatagramServer.__init__(self, "%s:%s"%(address, port))
+        Actor.__init__(self, name, setupbasic=False, limit=0)
+        self.createQueue("outbox")
         self.name = name
-        self.logging.info ( 'started and listening on port %s' % port)
-        self.inbox=Queue(None)
-        spawn(self.run)
- 
+        self._address = address
+        self.port = port
+        self.logging.info ( 'Started and listening on %s:%s' % (self._address, self.port) )
+
     def handle(self, data, address):
         '''Is called upon each incoming message, makes sure the data has the right Wishbone format and writes the it into self.inbox'''
-        
-        self.logging.debug ('Data received from %s' % (address[0]) )
-        self.putData({'header':{},'data':data}, queue='inbox')
- 
-    def run(self):
-        '''Blocking function which starts the UDP server.'''
-        
-        self.start()
-        self.wait()
+
+        self.queuepool.outbox.put({'header':{},'data':data})
+
+    def start(self):
+        DatagramServer.start(self)
 
     def shutdown(self):
         '''This function is called on shutdown().'''
