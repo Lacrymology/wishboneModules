@@ -22,31 +22,48 @@
 #
 #
 import setuptools
-import inspect
-from os import path
-from sys import version_info
+import re
 
+###############################################################
+from wb_input_amqp import AMQP as docstring
 PROJECT = 'wb_input_amqp'
-VERSION = '0.1'
+MODULE = 'AMQP'
+AUTHOR = "Jelle Smet"
+URL = "https://github.com/smetj/wishboneModules"
+INSTALL_REQUIRES= [ "amqp" ]
+ENTRY_POINTS={
+    "wishbone.input": [
+        "AMQP = wb_input_amqp.wb_input_amqp:AMQP"
+    ]
+}
+###############################################################
+
+VERSION = docstring.__version__
 
 try:
-    with open('README.md') as file:
-        long_description = file.read()
+    with open ("README.md", "w") as readme:
+        readme.write(PROJECT+"\n")
+        readme.write("="*len(PROJECT)+"\n\n")
+        readme.write("version: %s\n\n"%(VERSION))
+        readme.write(docstring.__doc__+"\n")
+except:
+    pass
+
+try:
+    with open('README.md') as readme:
+        long_description = readme.read()
 except:
     long_description=''
 
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
-    description="A Wishbone AMQP input module.",
+    description=re.search(".*?\*\*(.*?)\*\*",docstring.__doc__).group(1),
     long_description=long_description,
-    author="Jelle Smet",
-    url="https://github.com/smetj/wishboneModules",
-    install_requires=['wishbone','amqp'],
+    author=AUTHOR,
+    url=URL,
+    install_requires=[ "wishbone" ] + INSTALL_REQUIRES,
     packages=setuptools.find_packages(),
     zip_safe=True,
-    entry_points="""
-        [wishbone.input]
-        amqp=wb_input_amqp.wb_input_amqp:AMQP
-    """
+    entry_points=ENTRY_POINTS
 )

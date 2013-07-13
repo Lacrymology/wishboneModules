@@ -22,34 +22,48 @@
 #
 #
 import setuptools
-import inspect
-from os import path
-from sys import version_info
+import re
 
-PROJECT = 'wb_inputgenerator'
-VERSION = '0.2'
+###############################################################
+from wb_input_generator import Generator as docstring
+PROJECT = 'wb_input_generator'
+MODULE = 'Generator'
+AUTHOR = "Jelle Smet"
+URL = "https://github.com/smetj/wishboneModules"
+INSTALL_REQUIRES= [ ]
+ENTRY_POINTS={
+    "wishbone.input": [
+        "Generator = wb_input_generator.wb_input_generator.Generator"
+    ]
+}
+###############################################################
 
-#The goal is to have a .pth file so it can be included when creating RPMs
-module_path=path.dirname((path.dirname(inspect.getfile(setuptools))))
-pth_dir="./%s-%s-py%s.egg"%(PROJECT,
-    VERSION,
-    '.'.join(str(i) for i in version_info[0:2]))
-pth=open ("%s/%s.pth"%(module_path,PROJECT),'w')
-pth.write(pth_dir)
-pth.close()
+VERSION = docstring.__version__
 
+try:
+    with open ("README.md", "w") as readme:
+        readme.write(PROJECT+"\n")
+        readme.write("="*len(PROJECT)+"\n\n")
+        readme.write("version: %s\n\n"%(VERSION))
+        readme.write(docstring.__doc__+"\n")
+except:
+    pass
+
+try:
+    with open('README.md') as readme:
+        long_description = readme.read()
+except:
+    long_description=''
 
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
-    description="A WishBone IO module which generates random data for testing purposes.",
-    author="Jelle Smet",
-    url="https://github.com/smetj/wishboneModules",
-    install_requires=['wishbone'],
+    description=re.search("\*\*(.*?)\*\*",docstring.__doc__, re.DOTALL).group(1),
+    long_description=long_description,
+    author=AUTHOR,
+    url=URL,
+    install_requires=[ "wishbone" ] + INSTALL_REQUIRES,
     packages=setuptools.find_packages(),
-    include_package_data=True,
-    entry_points="""
-        [wishbone.iomodule]
-        InputGenerator=wb_inputgenerator.inputgenerator:InputGenerator
-    """
+    zip_safe=True,
+    entry_points=ENTRY_POINTS
 )

@@ -44,10 +44,17 @@ class DictGenerator(Actor):
         - min_elements (int):       The minimum number of elements per dictionary.
         - max_elements (int):       The maximum number of elements per dictionary.
         - sleep (int):              The time in seconds to sleep between each message.
+
+
     Queues:
 
-        - inbox:    "Incoming" data produced by DictGenerator itself.
+        - outbox:    Contains the generated dictionaries.
+
+
+    When no filename is provided and internal wordlist is used.
     '''
+
+    __version__ = '0.1'
 
     def __init__(self, name, filename=None, randomize_keys=True, num_values=False, num_values_min=0, num_values_max=1, min_elements=1, max_elements=1, sleep=0  ):
         Actor.__init__(self, name, setupbasic=False, limit=0)

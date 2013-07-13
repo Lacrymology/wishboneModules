@@ -1,6 +1,8 @@
 wb_input_amqp
 =============
 
+version: 0.1
+
 **A Wishbone AMQP input module.**
 
     This module consumes messages from a message broker.
@@ -25,7 +27,7 @@ wb_input_amqp
                                 Default: "guest"
 
         - queue (str):          The queue which should be consumed.
-                                Default: None
+                                Default: A randomly generated queue name.
 
         - prefetch_count (int): The amount of messages consumed from the queue at once.
                                 Default: 1
@@ -40,3 +42,4 @@ wb_input_amqp
 
         - outbox:             Messages arriving from the broker.
         - acknowledge:        Message tags to acknowledge with the broker.
+    

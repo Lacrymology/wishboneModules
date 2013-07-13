@@ -22,6 +22,4 @@
 #       
 #
 
-__version__= "0.1"
-
-from inputgenerator import InputGenerator
+from generator import Generator
