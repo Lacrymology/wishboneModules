@@ -32,4 +32,7 @@ version: 0.1
 
 
     Data which cannot be converted or which fails the validation is purged.
+    The schema should be in valid JSON syntax notation. JSON validation can
+    only be done on Python objects so you will have to convert your any JSON
+    data to a Python object first.
     
