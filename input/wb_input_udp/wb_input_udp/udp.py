@@ -28,20 +28,26 @@ from gevent.queue import Queue
 from gevent.server import DatagramServer
 
 class UDP(DatagramServer, Actor):
-    '''A Wishbone module which handles UDP input.
+    '''**A Wishbone module which handles UDP input.**
 
-    Data received by the module is put into self.inbox
 
     Parameters:
 
-        * name(str):        The name you want this module to be registered under.
+        - name(str):        The name you want this module to be registered under.
 
-        * address(str):     The address to bind to.
+        - address(str):     The address to bind to.
                             Default: "0.0.0.0"
 
-        * port(int):        The port on which the server should listen.
+        - port(int):        The port on which the server should listen.
                             default: 19283
+
+
+    Queues:
+
+        - outbox:   Contains incoming events
     '''
+
+    __version__ = 0.1
 
     def __init__(self, name, address="0.0.0.0", port=19283):
         DatagramServer.__init__(self, "%s:%s"%(address, port))

@@ -72,6 +72,8 @@ class TCP(Actor):
     stream data.
     '''
 
+    __version__ = 0.1
+
     def __init__(self, name, port=19283, address='0.0.0.0', delimiter=None, max_connections=0):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.createQueue("outbox")

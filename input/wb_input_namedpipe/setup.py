@@ -25,7 +25,7 @@ import setuptools
 import re
 
 ###############################################################
-from wb_input_generator import Generator as docstring
+from wb_input_namedpipe import NamedPipe as docstring
 PROJECT = 'wb_input_namedpipe'
 MODULE = 'NamedPipe'
 AUTHOR = "Jelle Smet"

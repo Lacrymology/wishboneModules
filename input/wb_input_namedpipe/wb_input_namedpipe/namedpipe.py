@@ -43,6 +43,8 @@ class NamedPipe(Actor):
         - inbox:    Data coming from the outside world.
     '''
 
+    __version__ = 0.1
+
     def __init__(self, name, path="/tmp/%s.namedpipe"%(os.getpid())):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.createQueue("outbox")

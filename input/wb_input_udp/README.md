@@ -1,13 +1,23 @@
-wb_udpserver
+wb_input_udp
 ============
 
-A Wishbone module which handles UDP input.
-    
-    Data received by the module is put into self.inbox
-    
+version: 0.1
+
+**A Wishbone module which handles UDP input.**
+
+
     Parameters:
 
-        * name:       The name you want this module to be registered under.
-        * port:       The port on which the server should listen.
-    
+        - name(str):        The name you want this module to be registered under.
 
+        - address(str):     The address to bind to.
+                            Default: "0.0.0.0"
+
+        - port(int):        The port on which the server should listen.
+                            default: 19283
+
+
+    Queues:
+
+        - outbox:   Contains incoming events
+    
