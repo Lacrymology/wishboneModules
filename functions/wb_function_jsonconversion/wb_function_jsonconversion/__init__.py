@@ -22,6 +22,4 @@
 #       
 #
 
-__version__= "0.1"
-
-from jsonencode import JSONEncode
+from jsonconversion import JSONConversion

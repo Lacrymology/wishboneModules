@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#       jsonencode.py
+#       jsonconversion.py
 #
 #       Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -22,29 +22,55 @@
 #
 #
 
-from wishbone.toolkit import PrimitiveActor
-from json import dumps
+from wishbone import Actor
+from json import dumps, loads
 
 
-class JSONEncode(PrimitiveActor):
+class JSONConversion(Actor):
     '''**A Wishbone module which converts the event payload into a JSON string.**
 
     Parameters:
 
-        - name (str):    The instance name when initiated.
+        - name (str):   The instance name when initiated.
+
+        - mode (str):   Determines whether the input has to be encoded or decoded.
+                        Can have 2 values: "encode" or "decode".
+                        Default: decode
 
     Queues:
 
         - inbox:    Incoming events.
-        - outbox:   Outgoing events.
+
+        - outbox:   Outgoing (converted) events.
     '''
 
-    def __init__(self, name):
-        PrimitiveActor.__init__(self, name)
+    def __init__(self, name, mode="decode"):
+
+        Actor.__init__(self, name, limit=0)
+        self.name=name
+        self.mode=mode
+
+        if mode == "decode":
+            self.convert = self.__loads
+        elif mode == "encode":
+            self.convert = self.__dumps
+        else:
+            raise Exception ("mode should be either 'encode' or 'decode'.")
+
 
     def consume(self, event):
-        event["data"] = dumps(event["data"])
-        self.putData(event)
+
+        try:
+            event["data"] = self.convert(event["data"])
+            self.queuepool.outbox.put(event["data"])
+        except Exception as err:
+            self.logging.warn("Unable to convert incoming data. Purged.  Reason: %s"%(err))
+
+    def __loads(self, data):
+        return loads(data)
+
+    def __dumps(self, data):
+        return dumps(data)
 
     def shutdown(self):
         self.logging.info('Shutdown')
