@@ -22,4 +22,4 @@
 #       
 #
 
-from jsonconversion import JSONConversion
+from wb_function_msgpack import Msgpack

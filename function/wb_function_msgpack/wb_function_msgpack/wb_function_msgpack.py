@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#       msgpack.py
+#       wb_function_msgpack.py
 #
 #       Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -41,12 +41,16 @@ class Msgpack(Actor):
         - outbox:   Outgoing events.
     '''
 
+    __version__ = 0.1
+
     def __init__(self, name, mode):
-        Actor.__init__(self, name)
+        Actor.__init__(self, name, limit=0)
         if mode == "pack":
             self.do = self.pack
-        if mode == "unpack":
+        elif mode == "unpack":
             self.do = self.unpack
+        else:
+            raise Exception("mode should either be 'pack' or 'unpack'")
 
     def pack(self, data):
 

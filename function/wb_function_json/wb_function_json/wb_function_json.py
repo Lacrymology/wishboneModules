@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#       jsonconversion.py
+#       wb_function_json.py
 #
 #       Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -28,7 +28,7 @@ from jsonschema import Draft3Validator as Validator
 from jsonschema import ValidationError
 
 
-class JSONConversion(Actor):
+class JSON(Actor):
     '''**A Wishbone module which converts and validates JSON.**
 
     This module has 2 main modes:

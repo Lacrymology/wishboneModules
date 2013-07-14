@@ -25,9 +25,9 @@ import setuptools
 import re
 
 ###############################################################
-from wb_function_jsonconversion import JSONConversion as docstring
+from wb_function_json import JSON as docstring
 PROJECT = 'wb_input_jsonconversion'
-MODULE = 'JSONConversion'
+MODULE = 'JSON'
 AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ "jsonschema" ]
