@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#       skeleton.py
+#       __init__.py
 #       
 #       Copyright 2013 Jelle Smet development@smetj.net
 #       
@@ -20,32 +20,6 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 #       
-#       
+#
 
-from wishbone.toolkit import PrimitiveActor
-
-
-class Skeleton(PrimitiveActor):
-    '''**Skeleton Wishbone module is a minimal module which does nothing more than
-    shoveling data from inbox to outbox.**
-
-    It can be used as an example/base for new modules.
-    
-    Parameters:
-    
-        - name (str):    The instance name when initiated.
-    
-    Queues:
-    
-        - inbox:    Incoming events.
-        - outbox:   Outgoing events.
-    '''
-    
-    def __init__(self, name):
-        PrimitiveActor.__init__(self, name)
-    
-    def consume(self,doc):
-        self.putData(doc)
-       
-    def shutdown(self):
-        self.logging.info('Shutdown')
+from skeleton import Skeleton
