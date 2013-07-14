@@ -1,14 +1,35 @@
-wb_jsonencode
-=============
+wb_input_jsonconversion
+=======================
 
-** A Wishbone module which converts the event payload into a JSON string. **
+version: 0.1
+
+**A Wishbone module which converts and validates JSON.**
+
+    This module has 2 main modes:
+
+        - Validate JSON data and convert into a Python data structure.
+        - Convert a Python data structure into a JSON string.
+
 
     Parameters:
-    
-        - name (str):    The instance name when initiated.
-    
+
+        - name (str):   The instance name when initiated.
+
+        - mode (str):   Determines whether the input has to be encoded, decoded or
+                        passed through.
+                        Can have 3 values: "encode", "decode", "pass"
+                        Default: pass
+
+        - schema (str): The filename of the JSON validation schema to load.  When no
+                        schema is defined no validation is done.
+                        Default: ''
+
     Queues:
-    
+
         - inbox:    Incoming events.
+
         - outbox:   Outgoing events.
+
+
+    Data which cannot be converted or which fails the validation is purged.
     
