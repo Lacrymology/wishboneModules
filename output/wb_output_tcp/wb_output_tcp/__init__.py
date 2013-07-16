@@ -22,6 +22,8 @@
 #
 #
 
-__version__= "0.1"
+from tcp import TCP
+from pkg_resources import get_distribution
 
-from wb_tcpclient.tcpclient import TCPClient
+__version__ = get_distribution('wb_function_json').version
+
