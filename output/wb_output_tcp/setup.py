@@ -22,31 +22,53 @@
 #
 #
 import setuptools
-import inspect
-from os import path
-from sys import version_info
+import re
+import ast
 
-PROJECT = 'wb_tcpclient'
-VERSION = '0.4'
+###############################################################
+PROJECT = 'wb_output_tcp'
+MODULE = 'TCP'
+VERSION = "0.1"
+FILE = "wb_output_tcp/tcp.py"
+AUTHOR = "Jelle Smet"
+URL = "https://github.com/smetj/wishboneModules"
+INSTALL_REQUIRES= [ ]
+ENTRY_POINTS={
+    "wishbone.output": [
+        "TPC = wb_output_tcp.wb_output_tcp:TCP"
+    ]
+}
+###############################################################
+
+m = ast.parse(''.join(open(FILE)))
+for node in m.body:
+    if isinstance(node, ast.ClassDef) and node.name == MODULE:
+            DOCSTRING=ast.get_docstring(node)
 
 try:
-    with open('README.md') as file:
-        long_description = file.read()
+    with open ("README.md", "w") as readme:
+        readme.write(PROJECT+"\n")
+        readme.write("="*len(PROJECT)+"\n\n")
+        readme.write("version: %s\n\n"%(VERSION))
+        readme.write(DOCSTRING+"\n")
+except:
+    pass
+
+try:
+    with open('README.md') as readme:
+        long_description = readme.read()
 except:
     long_description=''
 
 setuptools.setup(
     name=PROJECT,
     version=VERSION,
-    description="A Wishbone IO module which writes data to a TCP socket.",
+    description=re.search(".*?\*\*(.*?)\*\*",DOCSTRING).group(1),
     long_description=long_description,
-    author="Jelle Smet",
-    url="https://github.com/smetj/wishboneModules",
-    install_requires=['wishbone'],
+    author=AUTHOR,
+    url=URL,
+    install_requires=[ "wishbone" ] + INSTALL_REQUIRES,
     packages=setuptools.find_packages(),
-    include_package_data=True,
-    entry_points="""
-        [wishbone.iomodule]
-        TCPClient=wb_tcpclient.tcpclient:TCPClient
-    """
+    zip_safe=True,
+    entry_points=ENTRY_POINTS
 )

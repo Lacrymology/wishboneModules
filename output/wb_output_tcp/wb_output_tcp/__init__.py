@@ -25,5 +25,5 @@
 from tcp import TCP
 from pkg_resources import get_distribution
 
-__version__ = get_distribution('wb_function_json').version
+__version__ = get_distribution('wb_output_tcp').version
 

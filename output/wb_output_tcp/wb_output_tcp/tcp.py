@@ -23,7 +23,7 @@
 #
 
 from wishbone import Actor
-from gevent import socket,sleep
+from gevent import socket, sleep, spawn
 from wishbone.tools import Measure
 
 class TCP(Actor):
@@ -60,43 +60,74 @@ class TCP(Actor):
 
     '''
 
-    def __init__(self, name, host="localhost", port=19283, stream=False, rescue=False):
-        Actor.__init__(self, name, limit=0)
+    def __init__(self, name, limit=0, host="localhost", port=19283, timeout=1, stream=False, rescue=False):
+        Actor.__init__(self, name, limit=limit)
         self.createQueue("rescue")
         self.name=name
         self.host=host
         self.port=port
+        self.timeout=timeout
+        self.stream=stream
+        self.rescue=rescue
         self.__retry_seconds=1
 
-    #@Measure.runTime
-    def consume(self, event):
-
-        if isinstance(event["data"],list):
-            data = ''.join(event["data"])
+        if self.stream == True:
+            self.socket = self.getSocket()
+            self.submit=self.__streamSubmit
         else:
-            data = event["data"]
+            self.submit=self.__connectSubmit
 
-        self.submit(data)
+        if self.rescue == True:
+            self.do = self.__rescue
+        else:
+            self.do = self.__repeat
 
-        # try:
-        #     self.submit(data)
-        # except Exception as err:
-        #     self.resc
-        # while self.loop()==True:
-        #     #try:
-        #         s=socket.socket()
-        #         s.settimeout(1)
-        #         s.connect(destination)
-        #         self.logging.debug("Writing data to %s"%(str(destination)))
-        #         s.sendall(data)
-        #         s.close()
-        #         break
-        #     # except Exception as err:
-        #     #     self.logging.warning("Failed to write data to %s. Reason: %s"%(str(destination), err))
-        #     #     sleep(1)
+    def consume(self, event):
+        self.submit(event["data"])
 
 
-    def __doRescue(self, event):
+    @Measure.runTime
+    def __streamSubmit(self, data):
+        ''''''
+        while self.loop():
+            try:
+                self.socket.send(str(data))
+                break
+            except Exception as err:
+                self.logging.warn('Failed to submit data to %s port %s.  Reason %s'%(self.host, self.port, err))
+                self.socket = self.getSocket()
+
+    def getSocket(self):
+        '''
+        '''
+
+        while self.loop():
+            try:
+                s = socket.socket()
+                s.settimeout(self.timeout)
+                s.connect((self.host, self.port))
+                self.queuepool.inbox.putUnlock()
+                return s
+            except Exception as err:
+                self.queuepool.inbox.putLock()
+                self.logging.warn("Connection to %s port %s broken. Reason: %s. Will retry in %s seconds."%(self.host, self.port, err, self.__retry_seconds))
+                sleep(self.__retry_seconds)
+
+    @Measure.runTime
+    def __connectSubmit(self, data):
+        while self.loop():
+            try:
+                s = self.getSocket()
+                s.send(str(data))
+                s.close()
+                break
+            except:
+                self.logging.warn('Failed to submit data to %s port %s.  Reason %s.  Trying again.'%(self.host, self.port, err))
+                sleep(1)
+
+
+
+    def __rescue(self, event):
 
         '''Executes submit.  When submit fails, the inbox is locked and events
         are submitted to the recue queue so they can be dealt with.  The inbox
@@ -104,11 +135,16 @@ class TCP(Actor):
         advantage of this approach is that the inbox will be empty after a
         while (but rescue queue will be filled).'''
 
+        if isinstance(event["data"],list):
+            data = ''.join(event["data"])
+        else:
+            data = event["data"]
+
         try:
-            self.submit(event)
+            self.submit(data)
             self.__retry_seconds=1
         except Exception as err:
-            self.warn("Failed to submit data to %s:%s.  Submitting to rescue queue.  Reason: %s"%(self.host, self.port, err))
+            self.logging.warn("Failed to submit data to %s:%s.  Submitting to rescue queue.  Reason: %s"%(self.host, self.port, err))
             self.queuepool.rescue.put(event)
             if self.queuepool.inbox.isLocked() == (False, False):
                 self.info("Locking inbox queue.")
@@ -118,29 +154,27 @@ class TCP(Actor):
                 if self.__retry_seconds < 64:
                     self.__retry_seconds*=2
 
-    def __doRepeat(self, event):
+
+    def __repeat(self, event):
 
         '''Executes submit.  Retries failed submit attempts untill successfull
         with an increasing interval of maximum 64 seconds. Inbox queue is
-        locked the moment submit() fails and unlocked when submit() succeeds.
-        An arbitrary number of events keep sitting in the inbox queue until
-        submit() executes successfully again.'''
+        never locked.'''
 
-        try:
-            self.submit(event)
-            self.__retry_seconds=1
-            #unlock needs to happen here but that's too expensive think about this later.....
+        if isinstance(event["data"],list):
+            data = ''.join(event["data"])
+        else:
+            data = event["data"]
 
-        except Exception as err:
-            self.warn("Failed to submit data to %s:%s.  Will retry.  Reason: %s"%(self.host, self.port, err))
-
-            self.queuepool.inbox.put(event)
-            if self.queuepool.inbox.isLocked() == (False, False):
-                self.info("Locking inbox queue.")
-                self.queuepool.inbox.putLock()
-            self.info("Waiting for %s seconds before retrying."%(self.__retry_seconds))
-            sleep(self.__retry_seconds)
-            if self.__retry_seconds < 64:
+        while self.loop():
+            try:
+                self.submit(data)
+                self.__retry_seconds=1
+                break
+            except Exception as err:
+                self.logging.warn("Failed to submit data to %s:%s.  Will retry.  Reason: %s"%(self.host, self.port, err))
+                #sleep(self.__retry_seconds)
+                if self.__retry_seconds < 64:
                     self.__retry_seconds*=2
 
 
