@@ -86,7 +86,10 @@ class DictGenerator(Actor):
         spawn(self.__startGenerating)
 
     def __startGenerating(self):
-        while self.loopContextSwitch():
+
+        switcher = self.getContextSwitcher(5, self.loop)
+
+        while switcher.do():
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
@@ -106,7 +109,8 @@ class DictGenerator(Actor):
 
     def pickWord(self):
         '''Returns a word as string from the wordlist.'''
-        while self.loop() == True:
+
+        while self.loop():
             word = choice(self.wordlist).rstrip()
             try:
                 return word.encode("ascii","ignore")
