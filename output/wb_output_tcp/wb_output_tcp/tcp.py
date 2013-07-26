@@ -76,7 +76,8 @@ class TCP(Actor):
         self.__create_socket_busy.clear()
 
         if self.stream == True:
-            self.socket = spawn(self.createStreamSocket)
+            self.socket = self.getSocket()
+            self.logging.info("Connected to %s:%s."%(self.host, self.port))
             self.submit=self.__streamSubmit
         else:
             self.submit=self.__connectSubmit
@@ -106,7 +107,8 @@ class TCP(Actor):
                     break
                 else:
                     self.logging.warn('Failed to submit data to %s port %s.  Reason %s'%(self.host, self.port, err))
-                    spawn(self.createStreamSocket)
+                    self.socket=self.getSocket()
+                    self.logging.info("Connected to %s:%s."%(self.host, self.port))
 
     @Measure.runTime
     def __connectSubmit(self, event):
@@ -135,7 +137,7 @@ class TCP(Actor):
         if not self.__create_socket_busy.isSet():
             self.__create_socket_busy.set()
             self.socket = self.getSocket()
-            self.logging.info("Connected to %s port %s."%(self.host, self.port))
+            self.logging.info("Connected to %s:%s."%(self.host, self.port))
             self.__create_socket_busy.clear()
 
     def getSocket(self):
@@ -161,6 +163,3 @@ class TCP(Actor):
                     self.logging.warn("Locking inbox for incoming data.")
                 self.logging.warn("Failed to connect to %s port %s. Reason: %s. Will retry in %s seconds."%(self.host, self.port, err, self.__retry_seconds))
                 sleep(self.__retry_seconds)
-
-    def shutdown(self):
-        self.logging.info('Shutdown')
