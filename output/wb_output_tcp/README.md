@@ -29,6 +29,5 @@ Parameters:
 
 Queues:
 
-    - inbox:    Incoming events.
-    - outbox:   Outgoing events destined to the outside world.
+    - inbox:    Incoming events submitted to the outside.
     - rescue:   Contains events which failed to go out succesfully.
