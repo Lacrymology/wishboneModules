@@ -76,7 +76,7 @@ class TCP(Actor):
         self.__create_socket_busy.clear()
 
         if self.stream == True:
-            self.socket = self.getSocket()
+            self.socket = spawn(self.createStreamSocket)
             self.submit=self.__streamSubmit
         else:
             self.submit=self.__connectSubmit
@@ -126,7 +126,6 @@ class TCP(Actor):
                 if self.rescue == True:
                     self.logging.warn('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
                     self.queuepool.rescue.put(event)
-                    spawn(self.createStreamSocket)
                     break
                 else:
                     self.logging.warn('Failed to submit data to %s port %s.  Reason %s.  Trying again in %s seconds.'%(self.host, self.port, err, self.__retry_seconds))
@@ -136,6 +135,7 @@ class TCP(Actor):
         if not self.__create_socket_busy.isSet():
             self.__create_socket_busy.set()
             self.socket = self.getSocket()
+            self.logging.info("Connected to %s port %s."%(self.host, self.port))
             self.__create_socket_busy.clear()
 
     def getSocket(self):
