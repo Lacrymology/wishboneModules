@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  tcp.py
+#  uds.py
 #
 #  Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -27,24 +27,18 @@ from wishbone.tools import Measure
 from gevent import socket, sleep, spawn
 from gevent.event import Event
 
-class TCP(Actor):
-    '''**A Wishbone IO module which writes data to a TCP socket.**
+class UDS(Actor):
+    '''**A Wishbone IO module which writes data to a Unix domain socket.**
 
-    Writes data to a tcp socket.
+    Writes data to a unix domain socket.
+
 
     Parameters:
 
         - name (str):       The instance name when initiated.
 
-        - host (string):    The host to submit to.
-                            Default: "localhost"
-
-        - port (int):       The port to submit to.
-                            Default: 19283
-
-        - timeout(int):     The time in seconds to timeout when
-                            connecting
-                            Default: 1
+        - path (string):    The path to the domain socket.
+                            Default: "/tmp/wishbone"
 
         - stream (bool):    Keep the connection open.
                             Default: False
@@ -61,17 +55,14 @@ class TCP(Actor):
 
     '''
 
-    def __init__(self, name, limit=0, host="localhost", port=19283, timeout=1, stream=False, rescue=False):
+    def __init__(self, name, limit=0, path="/tmp/wishbone", stream=False, rescue=False):
         Actor.__init__(self, name, limit=limit, setupbasic=False)
         self.createQueue("rescue")
         self.createQueue("inbox", 1000)
         self.queuepool.inbox.putLock()
-
         self.registerConsumer(self.consume, self.queuepool.inbox)
         self.name=name
-        self.host=host
-        self.port=port
-        self.timeout=timeout
+        self.path=path
         self.stream=stream
         self.rescue=rescue
         self.__retry_seconds=1
@@ -107,14 +98,14 @@ class TCP(Actor):
 
             except Exception as err:
                 if self.rescue == True:
-                    self.logging.debug('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
+                    self.logging.debug('Failed to submit data to %s.  Reason %s. Sending back to rescue queue.'%(self.path, err))
                     self.queuepool.rescue.put(event)
                     spawn(self.createStreamSocket)
                     break
                 else:
-                    self.logging.debug('Failed to submit data to %s port %s.  Reason %s'%(self.host, self.port, err))
+                    self.logging.debug('Failed to submit data to %s.  Reason %s'%(self.path, err))
                     self.socket=self.getSocket()
-                    self.logging.info("Connected to %s:%s."%(self.host, self.port))
+                    self.logging.info("Connected to %s."%(self.path))
 
     @Measure.runTime
     def __connectSubmit(self, event):
@@ -135,11 +126,11 @@ class TCP(Actor):
                 break
             except Exception as err:
                 if self.rescue == True:
-                    self.logging.warn('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
+                    self.logging.warn('Failed to submit data to %s.  Reason %s. Sending back to rescue queue.'%(self.path, err))
                     self.queuepool.rescue.put(event)
                     break
                 else:
-                    self.logging.warn('Failed to submit data to %s port %s.  Reason %s.  Trying again in %s seconds.'%(self.host, self.port, err, self.__retry_seconds))
+                    self.logging.warn('Failed to submit data to %s.  Reason %s.  Trying again in %s seconds.'%(self.path, err, self.__retry_seconds))
                     sleep(1)
 
     def createStreamSocket(self):
@@ -149,7 +140,7 @@ class TCP(Actor):
         if not self.__create_socket_busy.isSet():
             self.__create_socket_busy.set()
             self.socket = self.getSocket()
-            self.logging.info("Connected to %s:%s."%(self.host, self.port))
+            self.logging.info("Connected to %s."%(self.path))
             self.__create_socket_busy.clear()
 
     def getSocket(self):
@@ -160,9 +151,9 @@ class TCP(Actor):
 
         while self.loop():
             try:
-                s = socket.socket()
-                s.settimeout(self.timeout)
-                s.connect((self.host, self.port))
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.connect(self.path)
                 if retrying == True:
                     self.queuepool.inbox.putUnlock()
                     self.logging.debug("Unlocked inbox for incoming data.")
@@ -172,7 +163,7 @@ class TCP(Actor):
                 if self.queuepool.inbox.isLocked()[1] == False:
                     self.queuepool.inbox.putLock()
                     self.logging.debug("Locking inbox for incoming data.")
-                self.logging.warn("Failed to connect to %s port %s. Reason: %s. Will retry in %s seconds."%(self.host, self.port, err, self.__retry_seconds))
+                self.logging.warn("Failed to connect to %s. Reason: %s. Will retry in %s seconds."%(self.path, err, self.__retry_seconds))
                 sleep(self.__retry_seconds)
 
     def testConnection(self):

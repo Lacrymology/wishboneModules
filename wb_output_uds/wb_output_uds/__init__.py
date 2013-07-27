@@ -22,6 +22,8 @@
 #       
 #
 
-__version__= "0.1"
+from uds import UDS
+from pkg_resources import get_distribution
 
-from udsclient import UDSClient
+__version__ = get_distribution('wb_output_tcp').version
+
