@@ -64,6 +64,8 @@ class TCP(Actor):
         Actor.__init__(self, name, limit=limit, setupbasic=False)
         self.createQueue("rescue")
         self.createQueue("inbox", 1000)
+        self.queuepool.inbox.putLock()
+
         self.registerConsumer(self.consume, self.queuepool.inbox)
         self.name=name
         self.host=host
@@ -76,11 +78,11 @@ class TCP(Actor):
         self.__create_socket_busy.clear()
 
         if self.stream == True:
-            self.socket = self.getSocket()
-            self.logging.info("Connected to %s:%s."%(self.host, self.port))
             self.submit=self.__streamSubmit
         else:
             self.submit=self.__connectSubmit
+
+        spawn(self.testConnection)
 
     def consume(self, event):
 
@@ -88,7 +90,9 @@ class TCP(Actor):
 
     @Measure.runTime
     def __streamSubmit(self, event):
-        ''''''
+
+        '''Submits each event to an already opened socket <self.socket>.
+        '''
 
         if isinstance(event["data"],list):
             data = ''.join(event["data"])
@@ -99,19 +103,23 @@ class TCP(Actor):
             try:
                 self.socket.send(str(data))
                 break
+
             except Exception as err:
                 if self.rescue == True:
-                    self.logging.warn('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
+                    self.logging.debug('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
                     self.queuepool.rescue.put(event)
                     spawn(self.createStreamSocket)
                     break
                 else:
-                    self.logging.warn('Failed to submit data to %s port %s.  Reason %s'%(self.host, self.port, err))
+                    self.logging.debug('Failed to submit data to %s port %s.  Reason %s'%(self.host, self.port, err))
                     self.socket=self.getSocket()
                     self.logging.info("Connected to %s:%s."%(self.host, self.port))
 
     @Measure.runTime
     def __connectSubmit(self, event):
+
+        '''For each events, opens a socket writes data to it and closes it.
+        '''
 
         if isinstance(event["data"],list):
             data = ''.join(event["data"])
@@ -134,6 +142,9 @@ class TCP(Actor):
                     sleep(1)
 
     def createStreamSocket(self):
+        '''Creates <self.socket>.
+        Locking prevents multiple instances running at the same time.
+        '''
         if not self.__create_socket_busy.isSet():
             self.__create_socket_busy.set()
             self.socket = self.getSocket()
@@ -141,8 +152,7 @@ class TCP(Actor):
             self.__create_socket_busy.clear()
 
     def getSocket(self):
-        '''
-        Returns a socket object and locks inbox queue when this is not possible.
+        '''Returns a socket object and locks inbox queue when this is not possible.
         '''
 
         retrying = False
@@ -154,12 +164,23 @@ class TCP(Actor):
                 s.connect((self.host, self.port))
                 if retrying == True:
                     self.queuepool.inbox.putUnlock()
-                    self.logging.warn("Unlocked inbox for incoming data.")
+                    self.logging.debug("Unlocked inbox for incoming data.")
                 return s
             except Exception as err:
                 retrying = True
                 if self.queuepool.inbox.isLocked()[1] == False:
                     self.queuepool.inbox.putLock()
-                    self.logging.warn("Locking inbox for incoming data.")
+                    self.logging.debug("Locking inbox for incoming data.")
                 self.logging.warn("Failed to connect to %s port %s. Reason: %s. Will retry in %s seconds."%(self.host, self.port, err, self.__retry_seconds))
                 sleep(self.__retry_seconds)
+
+    def testConnection(self):
+        '''Tries to connect to the destination and unlocks <inbox> queue when
+        this succeeds.'''
+
+        if self.stream == True:
+            self.socket = self.getSocket()
+        else:
+            self.getSocket().close()
+
+        self.queuepool.inbox.putUnlock()
