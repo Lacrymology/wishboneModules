@@ -29,7 +29,7 @@ import ast
 PROJECT = 'wb_input_gearman'
 MODULE = 'Gearman'
 VERSION = "0.1"
-FILE = "wb_input_gearman/gearman.py"
+FILE = "wb_input_gearman/input_gearman.py"
 AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]

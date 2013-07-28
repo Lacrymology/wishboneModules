@@ -24,7 +24,7 @@
 
 from wishbone import Actor
 from gevent import spawn, sleep
-from gevent import monkey;monkey.patch_socket()
+from gevent import monkey;monkey.patch_all()
 from gearman import GearmanWorker
 from Crypto.Cipher import AES
 import base64
@@ -47,24 +47,28 @@ class Gearman(Actor):
         - workers(int):     The number of gearman workers within 1 process.
                             Default: 1
 
+        - queue(str):       The queue to consume jobs from.
+                            Default: "wishbone"
+
     When secret is none, no decryption is done.
 
     '''
 
-    def __init__(self, name, hostname=["localhost:4730"], secret=None, workers=1):
+    def __init__(self, name, hostlist=["localhost:4730"], secret=None, workers=1, queue="wishbone"):
         Actor.__init__(self, name, setupbasic=False)
         self.createQueue("outbox")
         self.name = name
-        self.hostnames=hostnames
+        self.hostlist=hostlist
         self.secret=secret
         self.workers=workers
-        key = self.secret[0:32]
+        self.queue=queue
 
         self.background_instances=[]
 
         if self.secret == None:
             self.decrypt = self.__plainTextJob
         else:
+            key = self.secret[0:32]
             self.cipher=AES.new(key+chr(0)*(32-len(key)))
             self.decrypt = self.__encryptedJob
 
@@ -72,10 +76,10 @@ class Gearman(Actor):
 
     def preHook(self):
         for _ in range (self.workers):
-            spawn(self.gearmandWorker)
+            spawn(self.gearmanWorker)
 
     def consume(self, gearman_worker, gearman_job):
-        decrypted = self.decrypt(gearman_jobs.data)
+        decrypted = self.decrypt(gearman_job.data)
         self.queuepool.outbox.put({"header":{}, "data":decrypted})
         return "ok"
 
@@ -85,12 +89,13 @@ class Gearman(Actor):
     def __plainTextJob(self, data):
         return data
 
-    def gearmandWorker(self):
+    def gearmanWorker(self):
+
         self.logging.info("Gearmand worker instance started")
         while self.loop():
             try:
-                worker_instance=GearmanWorker(self.hostnames)
-                worker_instance.register_task('wishbone', self.consume)
+                worker_instance=GearmanWorker(self.hostlist)
+                worker_instance.register_task(self.queue, self.consume)
                 worker_instance.work()
             except Exception as err:
                 self.logging.warn ('Connection to gearmand failed. Reason: %s. Retry in 1 second.'%err)
