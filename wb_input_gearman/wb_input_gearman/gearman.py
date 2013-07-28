@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#       gearmand.py
+#       gearman.py
 #
 #       Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -29,16 +29,17 @@ from gearman import GearmanWorker
 from Crypto.Cipher import AES
 import base64
 
-class Gearmand(Actor):
+class Gearman(Actor):
     '''
-    **A Wishbone IO module which consumes jobs from a Gearmand server.**
+    **A Wishbone input module which consumes jobs from a Gearmand server.**
 
     Consumes jobs from a Gearmand server.
 
     Parameters:
 
-        - hostnames(list):  A list with hostname:port entries.
-                            Default: []
+        - hostlist(list):   A list of gearmand servers.  Each entry should have
+                            format host:port.
+                            Default: ["localhost:4730"]
 
         - secret(str):      The AES encryption key to decrypt Mod_gearman messages.
                             Default: None
@@ -50,43 +51,47 @@ class Gearmand(Actor):
 
     '''
 
-    def __init__(self, name, hostnames=[], secret=None, workers=1):
-        Actor.__init__(self, name, limit=0)
+    def __init__(self, name, hostname=["localhost:4730"], secret=None, workers=1):
+        Actor.__init__(self, name, setupbasic=False)
+        self.createQueue("outbox")
         self.name = name
         self.hostnames=hostnames
         self.secret=secret
         self.workers=workers
         key = self.secret[0:32]
-        self.cipher=AES.new(key+chr(0)*(32-len(key)))
+
         self.background_instances=[]
+
         if self.secret == None:
-            self.decode = self.__plainJob
+            self.decrypt = self.__plainTextJob
         else:
-            self.decode = self.__encryptedJob
+            self.cipher=AES.new(key+chr(0)*(32-len(key)))
+            self.decrypt = self.__encryptedJob
+
         self.logging.info ( 'Initiated' )
 
-    def __encryptedJob (self, gearman_worker, gearman_job):
-        self.sendData({'header':{},'data':self.cipher.decrypt(base64.b64decode(gearman_job.data))}, queue='inbox')
-        return "ok"
-
-    def __plainJob(self, gearman_worker, gearman_job)
-        self.sendData({'header':{},'data':gearman_job.data}, queue='inbox')
-        return "ok"
-
-    def start(self):
-        self.logging.info('Started')
+    def preHook(self):
         for _ in range (self.workers):
-            spawn(self.restartOnFailure)
+            spawn(self.gearmandWorker)
 
-    def restartOnFailure(self):
+    def consume(self, gearman_worker, gearman_job):
+        decrypted = self.decrypt(gearman_jobs.data)
+        self.queuepool.outbox.put({"header":{}, "data":decrypted})
+        return "ok"
+
+    def __encryptedJob (self, data):
+        return self.cipher.decrypt(base64.b64decode(data))
+
+    def __plainTextJob(self, data):
+        return data
+
+    def gearmandWorker(self):
+        self.logging.info("Gearmand worker instance started")
         while self.loop():
             try:
                 worker_instance=GearmanWorker(self.hostnames)
-                worker_instance.register_task('perfdata', self.decode)
+                worker_instance.register_task('wishbone', self.consume)
                 worker_instance.work()
             except Exception as err:
-                self.logging.warn ('Connection to gearmand failed. Reason: %s'%err)
+                self.logging.warn ('Connection to gearmand failed. Reason: %s. Retry in 1 second.'%err)
                 sleep(1)
-
-    def shutdown(self):
-        self.logging.info('Shutdown')

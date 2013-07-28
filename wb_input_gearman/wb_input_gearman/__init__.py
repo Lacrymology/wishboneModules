@@ -22,6 +22,8 @@
 #       
 #
 
-__version__= "0.1"
+from wb_input_amqp import AMQP
+from pkg_resources import get_distribution
 
-from gearmand import Gearmand
+__version__ = get_distribution('wb_input_gearman').version
+
