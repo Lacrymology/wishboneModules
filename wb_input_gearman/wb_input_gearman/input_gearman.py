@@ -24,7 +24,7 @@
 
 from wishbone import Actor
 from gevent import spawn, sleep
-from gevent import monkey;monkey.patch_all()
+from gevent import monkey;monkey.patch_select();monkey.patch_socket();
 from gearman import GearmanWorker
 from Crypto.Cipher import AES
 import base64
