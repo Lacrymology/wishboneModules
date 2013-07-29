@@ -25,6 +25,7 @@
 from random import choice, uniform, randint
 from gevent import sleep, spawn
 from wishbone import Actor
+from wishbone.errors import QueueLocked, QueueFull
 
 class DictGenerator(Actor):
 
@@ -93,7 +94,12 @@ class DictGenerator(Actor):
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
-            self.queuepool.outbox.put({"header":{},"data":data})
+            try:
+                self.queuepool.outbox.put({"header":{},"data":data})
+            except QueueLocked:
+                self.queuepool.outbox.waitUntilPutAllowed()
+            except QueueFull:
+                self.queuepool.outbox.waitUntilFreePlace()
 
     def readWordList(self, filename):
         '''Reads and returns the wordlist as a tuple.'''
