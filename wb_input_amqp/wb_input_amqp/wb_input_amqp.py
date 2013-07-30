@@ -23,6 +23,7 @@
 #
 
 from wishbone import Actor
+from wishbone.errors import QueueFull, QueueLocked
 from gevent import spawn, sleep
 from gevent.event import Event
 from gevent import monkey;monkey.patch_socket()
@@ -166,8 +167,7 @@ class AMQP(Actor):
     def consumeMessage(self, message):
         '''Is called upon each message coming from the broker infrastructure.'''
 
-        self.queuepool.outbox.put({'header':{'broker_tag':message.delivery_tag},'data':message.body})
-        self.logging.debug('Data received from broker.')
+        self.putEvent({'header':{'broker_tag':message.delivery_tag},'data':message.body}, self.queuepool.outbox)
 
     def createBrokerConfig(self, exchange, key):
         '''Create the provided exchange a queue with the keyname and binding.'''

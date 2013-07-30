@@ -55,6 +55,9 @@ class MongoDB(Actor):
         - max (int):                Maximum number of documents in the capped collection.
                                     Default: 100000
 
+        - drop_db(bool):            When True drops the DB after disconnecting.
+                                    Default: False
+
     Queues:
 
         - inbox:                    Messages going to MongoDB.
@@ -93,10 +96,12 @@ class MongoDB(Actor):
                 break
             except Exception as err:
                 self.logging.warn('Problem inserting data into MongoDB.  Reason: %s'%(err))
-                (self.connection, self.mongo) = self.setupConnection()
+                self.createConnection()
+                self.queuepool.inbox.putUnlock()
 
     def createConnection(self):
         (self.connection, self.mongo) = self.setupConnection()
+        self.queuepool.inbox.putUnlock()
 
 
     def setupConnection(self):
@@ -118,11 +123,9 @@ class MongoDB(Actor):
                 except CollectionInvalid:
                     self.logging.warn("Collection already exists.  Using that one.")
 
-                self.queuepool.inbox.putUnlock()
                 return (connection, connection[self.db][self.collection])
 
             except Exception as err:
-                print err
                 self.queuepool.inbox.putLock()
                 self.logging.warn("Failed to create MongoDB collection.  Reason: %s.  Will retry in 1 second."%(err))
                 sleep(1)

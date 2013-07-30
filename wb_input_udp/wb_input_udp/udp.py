@@ -59,7 +59,7 @@ class UDP(DatagramServer, Actor):
     def handle(self, data, address):
         '''Is called upon each incoming message, makes sure the data has the right Wishbone format and writes the it into self.inbox'''
 
-        self.queuepool.outbox.put({'header':{},'data':data})
+        self.putEvent({'header':{},'data':data}, self.queuepool.outbox)
 
     def start(self):
         DatagramServer.start(self)

@@ -29,6 +29,9 @@ Parameters:
     - max (int):                Maximum number of documents in the capped collection.
                                 Default: 100000
 
+    - drop_db(bool):            When True drops the DB after disconnecting.
+                                Default: False
+
 Queues:
 
     - inbox:                    Messages going to MongoDB.

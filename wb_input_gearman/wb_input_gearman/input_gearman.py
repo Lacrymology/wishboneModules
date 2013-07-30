@@ -23,6 +23,7 @@
 #
 
 from wishbone import Actor
+from wishbone.errors import QueueFull, QueueLocked
 from gevent import spawn, sleep
 from gevent import monkey;monkey.patch_select();monkey.patch_socket();
 from gearman import GearmanWorker
@@ -80,8 +81,7 @@ class Gearman(Actor):
 
     def consume(self, gearman_worker, gearman_job):
         decrypted = self.decrypt(gearman_job.data)
-        self.queuepool.outbox.put({"header":{}, "data":decrypted})
-        return "ok"
+        self.putEvent({"header":{}, "data":decrypted}, self.queuepool.outbox)
 
     def __encryptedJob (self, data):
         return self.cipher.decrypt(base64.b64decode(data))

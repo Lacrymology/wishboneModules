@@ -64,7 +64,9 @@ class NamedPipe(Actor):
         #               that is not working in pypy for the moment.
 
         self.logging.info('Started.')
-        while self.loopContextSwitch():
+
+        switcher = self.getContextSwitcher(100, self.loop)
+        while self.switcher.do():
             try:
                 lines = os.read(self.fd, 4096).splitlines()
             except OSError:
@@ -72,11 +74,11 @@ class NamedPipe(Actor):
             else:
                 if len(lines) > 0:
                     for line in  lines:
-                        self.queuepool.outbox.put({'header':{},'data':line})
+                        self.putEvent({'header':{},'data':line}, self.queuepool.outbox)
                 else:
                     sleep(0.1)
 
-    def shutdown(self):
+    def postHook(self):
         self.fifo.close()
         os.unlink(self.path)
         self.logging.info('Shutdown')

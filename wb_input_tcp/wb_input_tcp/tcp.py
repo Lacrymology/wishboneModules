@@ -103,13 +103,13 @@ class TCP(Actor):
 
         if self.delimiter == None:
             chunk = sfile.readlines()
-            self.queuepool.outbox.put({'header':{},'data':''.join(chunk)})
+            self.putEvent({'header':{},'data':''.join(chunk)}, self.queuepool.outbox)
         else:
             while self.block()==True:
                 chunk = sfile.readline()
                 if chunk == "":
                     if len(data) > 0:
-                        self.queuepool.outbox.put({'header':{},'data':''.join(data)})
+                        self.putEvent({'header':{},'data':''.join(data)}, self.queuepool.outbox)
                     break
                 else:
                     if chunk.endswith(self.delimiter):
@@ -117,7 +117,7 @@ class TCP(Actor):
                         if chunk != '':
                             data.append(chunk)
                         if len(data) > 0:
-                            self.queuepool.outbox.put({'header':{},'data':''.join(data)})
+                            self.putEvent({'header':{},'data':''.join(data)}, self.queuepool.outbox)
                             data=[]
                     else:
                         data.append(chunk)

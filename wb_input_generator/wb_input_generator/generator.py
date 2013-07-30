@@ -23,7 +23,7 @@
 #
 
 from wishbone import Actor
-from wishbone.errors import QueueLocked
+from wishbone.errors import QueueLocked, QueueFull
 from string import ascii_uppercase, ascii_lowercase, digits
 from random import choice, uniform, randint
 from gevent import spawn, sleep, spawn_later
@@ -73,9 +73,11 @@ class Generator(Actor):
 
     def __init__(self, name, min_payload=1, max_payload=1, min_interval=0, max_interval=0.5, min_outage_start=10, max_outage_start=60, min_outage_length=0, max_outage_length=5):
         Actor.__init__(self, name, setupbasic=False, limit=0)
+        self.createQueue("temp")
+        self.createQueue("outbox")
+        self.registerConsumer(self.consume, self.queuepool.temp)
 
         self.logging.info ( 'Initiated' )
-
         self.name = name
         self.min_payload=min_payload
         self.max_payload=max_payload
@@ -85,17 +87,12 @@ class Generator(Actor):
         self.max_outage_start=max_outage_start
         self.min_outage_length=min_outage_length
         self.max_outage_length=max_outage_length
-
-        self.createQueue("temp")
-        self.createQueue("outbox")
-
         self.outage=Event()
         self.outage.set()
 
-
     def preHook(self):
         spawn(self.go)
-        spawn(self.reaper)
+        self.planOutage()
 
     def go(self):
         self.logging.info('Started')
@@ -109,20 +106,9 @@ class Generator(Actor):
             self.logging.debug('Waiting for %s seconds until the next data batch is generated.'%sleeping_time)
             sleep(sleeping_time)
 
-    def reaper(self):
-
-        '''The reaper runs actually submits the randomly generated data from the local queue into the outgoing queue.
-        The goal of this is to make to reaper stop working for min_outage to max_outage to simulate an outage.
-        '''
-
-        self.planOutage()
-        while self.loopContextSwitch():
-            self.outage.wait()
-            try:
-                event=self.queuepool.temp.get()
-                self.queuepool.outbox.put(event)
-            except QueueLocked:
-                pass
+    def consume(self, event):
+        self.outage.wait()
+        self.putEvent(event, self.queuepool.outbox)
 
     def planOutage(self):
         '''Plans when the next outage will occur.'''
@@ -132,7 +118,7 @@ class Generator(Actor):
         self.logging.info('Next outage is planned at %s'%(strftime("%a, %d %b %Y %H:%M:%S +0000", localtime(time()+start_outage))))
 
     def executeOutage(self):
-        '''Executes the outage by locking the reaper.'''
+        '''Executes the outage by locking the <consume> function.'''
 
         self.outage.clear()
         outage_length=uniform(self.min_outage_length, self.max_outage_length)
@@ -141,6 +127,3 @@ class Generator(Actor):
         self.logging.info("Outage finished.")
         self.planOutage()
         self.outage.set()
-
-    def shutdown(self):
-        self.logging.info('Shutdown')

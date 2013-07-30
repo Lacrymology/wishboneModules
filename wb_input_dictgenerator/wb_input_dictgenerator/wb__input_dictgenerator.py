@@ -94,12 +94,9 @@ class DictGenerator(Actor):
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
-            try:
-                self.queuepool.outbox.put({"header":{},"data":data})
-            except QueueLocked:
-                self.queuepool.outbox.waitUntilPutAllowed()
-            except QueueFull:
-                self.queuepool.outbox.waitUntilFreePlace()
+
+            self.putEvent({"header":{},"data":data}, self.queuepool.outbox)
+
 
     def readWordList(self, filename):
         '''Reads and returns the wordlist as a tuple.'''
