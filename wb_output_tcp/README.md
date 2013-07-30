@@ -7,9 +7,6 @@ version: 0.1
 
 Writes data to a tcp socket.
 
-Pool should be a list of strings with format address:port.
-When pool has multiple entries, a random destination will be chosen.
-
 Parameters:
 
     - name (str):       The instance name when initiated.
@@ -19,6 +16,10 @@ Parameters:
 
     - port (int):       The port to submit to.
                         Default: 19283
+
+    - timeout(int):     The time in seconds to timeout when
+                        connecting
+                        Default: 1
 
     - stream (bool):    Keep the connection open.
                         Default: False
