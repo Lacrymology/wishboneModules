@@ -7,7 +7,7 @@ A collection of Wishbone Modules
 Input modules
 =============
 
-include wb_input_amqp/README.md
+!INCLUDE "wb_input_amqp/README.md"
 include wb_input_dictgenerator/README.md
 include wb_input_gearman/README.md
 include wb_input_generator/README.md
