@@ -7,30 +7,30 @@ A collection of Wishbone Modules
 Input modules
 =============
 
-!INCLUDE "wb_input_amqp/README.md"
-include wb_input_dictgenerator/README.md
-include wb_input_gearman/README.md
-include wb_input_generator/README.md
-include wb_input_namedpipe/README.md
-include wb_input_tcp/README.md
-include wb_input_udp/README.md
-include wb_input_uds/README.md
+- wb_input_amqp
+- wb_input_dictgenerator
+- wb_input_gearman
+- wb_input_generator
+- wb_input_namedpipe
+- wb_input_tcp
+- wb_input_udp
+- wb_input_uds
 
 
 Function modules
 ================
 
-include wb_function_json/README.md
-include wb_function_msgpack/README.md
-include wb_function_skeleton/README.md
-include wb_function_snappy/README.md
+- wb_function_json
+- wb_function_msgpack
+- wb_function_skeleton
+- wb_function_snappy
 
 
 Output modules
 ==============
 
-include wb_output_amqp/README.md
-include wb_output_mongodb/README.md
-include wb_output_tcp/README.md
-include wb_output_uds/README.md
-include wb_output_waitseconds/README.md
+- wb_output_amqp
+- wb_output_mongodb
+- wb_output_tcp
+- wb_output_uds
+- wb_output_waitseconds
