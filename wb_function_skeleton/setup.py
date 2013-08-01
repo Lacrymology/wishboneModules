@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
     "wishbone.function": [
-        "msgpack = wb_function_skeleton.wb_function_skeleton:Skeleton"
+        "skeleton = wb_function_skeleton.wb_function_skeleton:Skeleton"
     ]
 }
 ###############################################################

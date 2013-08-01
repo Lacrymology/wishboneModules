@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
     "wishbone.input": [
-        "DictGenerator = wb_input_dictgenerator.wb__input_dictgenerator.DictGenerator"
+        "dictgenerator = wb_input_dictgenerator.wb__input_dictgenerator.DictGenerator"
     ]
 }
 ###############################################################

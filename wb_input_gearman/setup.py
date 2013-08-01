@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
     "wishbone.input": [
-        "Gearman = wb_input_gearman.wb_input_tcp.Gearman"
+        "gearman = wb_input_gearman.wb_input_tcp.Gearman"
     ]
 }
 ###############################################################

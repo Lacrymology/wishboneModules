@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
     "wishbone.input": [
-        "TCP = wb_input_tcp.wb_input_tcp.TCP"
+        "tcp = wb_input_tcp.wb_input_tcp.TCP"
     ]
 }
 ###############################################################

@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ "amqp" ]
 ENTRY_POINTS={
     "wishbone.input": [
-        "AMQP = wb_input_amqp.wb_input_amqp:AMQP"
+        "amqp = wb_input_amqp.wb_input_amqp:AMQP"
     ]
 }
 ###############################################################
