@@ -34,9 +34,7 @@ AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
-    "wishbone.function": [
-        "skeleton = wb_function_skeleton.wb_function_skeleton:Skeleton"
-    ]
+    "wishbone.function": "skeleton = wb_function_skeleton.skeleton:Skeleton"
 }
 ###############################################################
 

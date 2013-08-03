@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
     "wishbone.input": [
-        "udp = wb_input_udp.wb_input_udp.UDP"
+        "udp = wb_input_udp.wb_input_udp:UDP"
     ]
 }
 ###############################################################
