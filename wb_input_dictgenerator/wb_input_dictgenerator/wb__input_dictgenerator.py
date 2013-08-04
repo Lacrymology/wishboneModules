@@ -88,7 +88,7 @@ class DictGenerator(Actor):
 
     def __startGenerating(self):
 
-        switcher = self.getContextSwitcher(5, self.loop)
+        switcher = self.getContextSwitcher(100, self.loop)
 
         while switcher.do():
             data={}
