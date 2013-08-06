@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ "python-snappy" ]
 ENTRY_POINTS={
     "wishbone.function": [
-        "msgpack = wb_function_snappy.wb_function_snappy:Snappy"
+        "snappy = wb_function_snappy.wb_function_snappy:Snappy"
     ]
 }
 ###############################################################

@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ "pymongo" ]
 ENTRY_POINTS={
     "wishbone.input": [
-        "mongodb = wb_input_mongodb.wb_input_mongodb:MongoDB"
+        "mongodb = wb_output_mongodb.mongodb:MongoDB"
     ]
 }
 ###############################################################

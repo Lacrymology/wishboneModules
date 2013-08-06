@@ -25,5 +25,5 @@
 from uds import UDS
 from pkg_resources import get_distribution
 
-__version__ = get_distribution('wb_output_tcp').version
+__version__ = get_distribution('wb_output_uds').version
 

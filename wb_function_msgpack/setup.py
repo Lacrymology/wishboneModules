@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ "msgpack-python" ]
 ENTRY_POINTS={
     "wishbone.function": [
-        "msgpack = wb_function_msgpackconversion.wb_function_msgpackconversion:MsgpackConversion"
+        "msgpack = wb_function_msgpack.wb_function_msgpack:Msgpack"
     ]
 }
 ###############################################################

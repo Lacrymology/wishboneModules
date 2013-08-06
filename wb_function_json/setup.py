@@ -26,7 +26,7 @@ import re
 import ast
 
 ###############################################################
-PROJECT = 'wb_input_json'
+PROJECT = 'wb_function_json'
 MODULE = 'JSON'
 VERSION = "0.1"
 FILE = "wb_function_json/wb_function_json.py"
@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ "jsonschema" ]
 ENTRY_POINTS={
     "wishbone.function": [
-        "jsonconversion = wb_function.jsonconversion.jsonconversion:JSONConversion"
+        "json = wb_function_json.wb_function_json:JSON"
     ]
 }
 ###############################################################

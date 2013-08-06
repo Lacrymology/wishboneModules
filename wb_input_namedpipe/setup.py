@@ -35,7 +35,7 @@ URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
     "wishbone.input": [
-        "generator = wb_input_namedpide.wb_input_generator:Generator"
+        "namedpipe = wb_input_namedpipe.namedpipe:NamedPipe"
     ]
 }
 ###############################################################

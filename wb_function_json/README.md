@@ -1,5 +1,5 @@
-wb_input_json
-=============
+wb_function_json
+================
 
 version: 0.1
 
