@@ -109,6 +109,10 @@ class TCP(Actor):
                 if self.rescue == True:
                     self.logging.debug('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
                     self.queuepool.rescue.put(event)
+                    try:
+                        self.socket.close()
+                    except:
+                        pass
                     spawn(self.createStreamSocket)
                     break
                 else:
@@ -134,6 +138,10 @@ class TCP(Actor):
                 s.close()
                 break
             except Exception as err:
+                try:
+                    s.close()
+                except:
+                    pass
                 if self.rescue == True:
                     self.logging.warn('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
                     self.queuepool.rescue.put(event)
