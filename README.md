@@ -33,4 +33,3 @@ Output modules
 - wb_output_mongodb
 - wb_output_tcp
 - wb_output_uds
-- wb_output_waitseconds
