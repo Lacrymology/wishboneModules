@@ -55,7 +55,7 @@ class DictGenerator(Actor):
     When no filename is provided and internal wordlist is used.
     '''
 
-    def __init__(self, name, filename=None, randomize_keys=True, num_values=False, num_values_min=0, num_values_max=1, min_elements=1, max_elements=1, sleep=0  ):
+    def __init__(self, name, filename=None, randomize_keys=True, num_values=False, num_values_min=0, num_values_max=1, min_elements=1, max_elements=1, sleep=0 ):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.createQueue("outbox")
         self.logging.info ( 'Initiated' )
@@ -84,9 +84,24 @@ class DictGenerator(Actor):
 
     def start(self):
         self.logging.info('Started')
-        spawn(self.__startGenerating)
+        if self.sleep > 0:
+            spawn(self.__startGeneratingSleep)
+        else:
+            spawn(self.__startGeneratingNoSleep)
 
-    def __startGenerating(self):
+    def __startGeneratingSleep(self):
+
+        switcher = self.getContextSwitcher(100, self.loop)
+
+        while switcher.do():
+            data={}
+            for x in xrange(0, randint(self.min_elements,self.max_elements)):
+                data[self.generateKey()]=self.generateValue()
+
+            sleep(self.sleep)
+            self.putEvent({"header":{},"data":data}, self.queuepool.outbox)
+
+    def __startGeneratingNoSleep(self):
 
         switcher = self.getContextSwitcher(100, self.loop)
 
@@ -96,7 +111,6 @@ class DictGenerator(Actor):
                 data[self.generateKey()]=self.generateValue()
 
             self.putEvent({"header":{},"data":data}, self.queuepool.outbox)
-
 
     def readWordList(self, filename):
         '''Reads and returns the wordlist as a tuple.'''
