@@ -97,7 +97,6 @@ class DictGenerator(Actor):
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
-
             sleep(self.sleep)
             self.putEvent({"header":{},"data":data}, self.queuepool.outbox)
 
@@ -109,7 +108,6 @@ class DictGenerator(Actor):
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
-
             self.putEvent({"header":{},"data":data}, self.queuepool.outbox)
 
     def readWordList(self, filename):
