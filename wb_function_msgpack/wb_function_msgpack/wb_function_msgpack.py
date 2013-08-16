@@ -23,6 +23,7 @@
 #
 
 from wishbone import Actor
+from wishbone.errors import QueueLocked
 import msgpack
 
 
@@ -63,7 +64,12 @@ class Msgpack(Actor):
 
     def consume(self,event):
         event["data"]=self.do(event["data"])
-        self.queuepool.outbox.put(event)
+
+        try:
+            self.queuepool.outbox.put(event)
+        except QueueLocked:
+            self.queuepool.inbox.rescue(event)
+            self.queuepool.outbox.waitUntillPutAllowed()
 
     def shutdown(self):
         self.logging.info('Shutdown')

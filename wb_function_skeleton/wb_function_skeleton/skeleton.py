@@ -23,6 +23,7 @@
 #
 
 from wishbone import Actor
+from wishbone.errors import QueueLocked
 
 
 class Skeleton(Actor):
@@ -49,4 +50,9 @@ class Skeleton(Actor):
         self.logging.info("Initialized")
 
     def consume(self, event):
-        self.queuepool.outbox.put(event)
+
+        try:
+            self.queuepool.outbox.put(event)
+        except QueueLocked:
+            self.queuepool.inbox.rescue(event)
+            self.queuepool.outbox.waitUntillPutAllowed()

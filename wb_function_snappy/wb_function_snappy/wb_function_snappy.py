@@ -23,6 +23,7 @@
 #
 
 from wishbone import Actor
+from wishbone.errors import QueueLocked
 import snappy
 
 class Snappy(Actor):
@@ -51,6 +52,7 @@ class Snappy(Actor):
     Queues:
 
         - inbox:    Incoming events.
+
         - outbox:   Outgoing events.
     '''
 
@@ -64,19 +66,31 @@ class Snappy(Actor):
         elif mode == "decompress":
             self.consume = self.__decompress
 
-    def __compress(self,message):
-        message['data']=snappy.compress(message['data'])
-        message['header']['snappy']=True
-        self.logging.debug("Incoming data compressed.")
-        self.putData(message)
+    def __compress(self, event):
 
-    def __decompress(self,message):
+        original_event=event
+        event['data']=snappy.compress(event['data'])
+        event['header']['snappy']=True
+        self.logging.debug("Incoming data compressed.")
         try:
-            message['data']=snappy.decompress(message['data'])
+            self.queuepool.outbox.put(event)
+        except QueueLocked:
+            self.queuepool.inbox.rescue(original_event)
+            self.queuepool.outbox.waitUntillPutAllowed()
+
+    def __decompress(self, event):
+
+        original_event=event
+        try:
+            event['data']=snappy.decompress(event['data'])
             self.logging.debug("Incoming data decompressed.")
-            message['header']['snappy']=False
-            self.putData(message)
+            event['header']['snappy']=False
         except Exception as err:
             self.logging.warn("Decompressing failed. Reason: %s"%err)
-            if self.purge != True:
-                self.putData(message)
+            if self.purge == True:
+                return
+        try:
+            self.queuepool.outbox.put(event)
+        except QueueLocked:
+            self.queuepool.inbox.rescue(original_event)
+            self.queuepool.outbox.waitUntillPutAllowed()

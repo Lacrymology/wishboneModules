@@ -23,7 +23,7 @@
 #
 
 from wishbone import Actor
-from wishbone.errors import QueueLocked, QueueFull
+from wishbone.errors import QueueLocked
 from json import dumps, loads
 from jsonschema import Draft3Validator as Validator
 from jsonschema import ValidationError
@@ -104,10 +104,9 @@ class JSON(Actor):
             self.logging.warn("JSON data does not pass the validation schema.  Purged.  Reason: %s"%(str(err).replace("\n"," > ")))
             return
 
-
         try:
             self.queuepool.outbox.put(event)
-        except QueueLocked, QueueFull:
+        except QueueLocked:
             self.queuepool.inbox.rescue(event)
             self.queuepool.outbox.waitUntillPutAllowed()
 
