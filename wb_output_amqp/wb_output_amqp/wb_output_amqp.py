@@ -22,10 +22,10 @@
 #
 #
 
+from gevent import monkey;monkey.patch_socket()
 from wishbone import Actor
 from gevent import spawn, sleep
 from gevent.event import Event
-from gevent import monkey;monkey.patch_socket()
 import amqp
 from amqp.exceptions import NotFound
 from amqp.exceptions import ConnectionError
@@ -73,6 +73,8 @@ class AMQP(Actor):
     def __init__(self, name, host, vhost='/', username='guest', password='guest', delivery_mode=2, auto_create=True ):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.createQueue("inbox")
+        self.queuepool.inbox.putLock()
+        self.createQueue("rescue")
         self.registerConsumer(self.produceMessage, self.queuepool.inbox)
         self.name=name
         self.logging.info('Initiated')
@@ -85,43 +87,29 @@ class AMQP(Actor):
         self.exchange_hist={}
         self.queue_hist={}
         self.waiter=Event()
-        self.waiter.clear()
-
-    def safe(fn):
-        '''decorator function to wrap potentially failing broker IO commands.'''
-
-        def do(self, *args, **kwargs):
-            sleep_seconds=1
-            while self.loop() == True:
-                try:
-                    return fn(self, *args, **kwargs)
-                except NotFound as err:
-                    self.logging.critical("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
-                    if self.auto_create == True:
-                        self.brokerCreateQueue(self.consume_queue)
-                except Exception as err:
-                    #sleep_seconds*=2
-                    self.logging.critical("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
-                    self.waiter.set()
-                sleep(sleep_seconds)
-                self.logging.info("Sleeping for %s second."%sleep_seconds)
-        return do
+        self.waiter.set()
 
     def preHook(self):
-        '''
-        Initial setup
-        '''
+        '''Initial setup'''
 
-        self.setupConnection()
         spawn(self.connectionMonitor)
 
     def connectionMonitor(self):
+        '''Tries to initiate a connection to the AMQP broker.'''
+
         while self.loop():
             self.waiter.wait()
-            self.setupConnection()
+            while self.loop():
+                try:
+                    self.setupConnection()
+                    self.queuepool.inbox.putUnlock()
+                    self.waiter.clear()
+                    break
+                except Exception as err:
+                    self.logging.warning("Failed to establish connection to %s.  Retry in 1 second."%(self.host))
+                    sleep(1)
             self.waiter.clear()
 
-    @safe
     def setupConnection(self):
 
         self.queue_hist={}
@@ -130,14 +118,12 @@ class AMQP(Actor):
         #Setup producing connection
         self.producer = amqp.Connection(host="%s:5672"%(self.host), userid=self.username, password=self.password, virtual_host=self.vhost)
         self.producer_channel = self.producer.channel()
-        self.logging.info('Connected to broker to produce.')
+        self.logging.info('Connected to broker.')
 
-    @safe
     def brokerCreateQueue(self, queue_name):
         self.producer_channel.queue_declare(queue=queue_name, auto_delete=False, nowait=False)
         self.logging.info("Creating queue %s"%(queue_name))
 
-    @safe
     def brokerCreateExchange(self, exchange):
         '''Create an exchange.'''
         if exchange != "":
@@ -146,7 +132,6 @@ class AMQP(Actor):
         else:
             self.logging.warn("Will not create default exchange.")
 
-    @safe
     def brokerCreateBinding(self,exchange,key):
         '''Create binding between exchange and queue.'''
         if exchange != "":
@@ -156,23 +141,27 @@ class AMQP(Actor):
     def produceMessage(self, message):
         '''Is called upon each event going to the broker infrastructure.'''
 
+        try:
+            if message["header"].has_key('broker_exchange') and message["header"].has_key('broker_key'):
+                if self.auto_create==True:
+                    self.createBrokerConfig(message["header"]["broker_exchange"],message["header"]["broker_key"])
 
-        if message["header"].has_key('broker_exchange') and message["header"].has_key('broker_key'):
-            if self.auto_create==True:
-                self.createBrokerConfig(message["header"]["broker_exchange"],message["header"]["broker_key"])
+                if isinstance(message["data"], list):
+                    data = ''.join(message["data"])
+                else:
+                    data = message["data"]
+                msg = amqp.Message(data)
+                msg.properties["delivery_mode"] = self.delivery_mode
 
-            if isinstance(message["data"], list):
-                data = ''.join(message["data"])
+                self.producer_channel.basic_publish(msg,exchange=message['header']['broker_exchange'],routing_key=message['header']['broker_key'])
+
             else:
-                data = message["data"]
-            msg = amqp.Message(data)
-            msg.properties["delivery_mode"] = self.delivery_mode
-
-            self.producer_channel.basic_publish(msg,exchange=message['header']['broker_exchange'],routing_key=message['header']['broker_key'])
-
-        else:
-            self.logging.warn('Received data for broker without exchange or routing key in header. Purged.')
-
+                self.logging.warn('Received data for broker without exchange or routing key in header. Purged.')
+        except Exception as err:
+            self.logging.debug("Failed to submit event to broker.  Reason: %s"%(err))
+            self.waiter.set()
+            self.queuepool.inbox.putLock()
+            self.queuepool.rescue.put(message)
 
     def createBrokerConfig(self, exchange, key):
         '''Create the provided exchange a queue with the keyname and binding.'''
