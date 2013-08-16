@@ -104,7 +104,6 @@ class AMQP(Actor):
                     self.logging.critical("AMQP error. Function: %s Reason: %s"%(fn.__name__,err))
                     self.waiter.set()
                 sleep(sleep_seconds)
-                sleep()
                 self.logging.info("Sleeping for %s second."%sleep_seconds)
         return do
 
@@ -154,9 +153,9 @@ class AMQP(Actor):
             self.logging.info("Createing binding between exchange %s and queue %s"%(exchange, key))
             self.producer_channel.queue_bind(key, exchange=exchange, routing_key=key, nowait=False)
 
-    @safe
     def produceMessage(self, message):
         '''Is called upon each event going to the broker infrastructure.'''
+
 
         if message["header"].has_key('broker_exchange') and message["header"].has_key('broker_key'):
             if self.auto_create==True:
