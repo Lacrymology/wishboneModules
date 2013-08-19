@@ -46,6 +46,8 @@ class ElasticSearch(Actor):
 
         - inbox:    Incoming events.
 
+        - rescue:   Events which failed to submit.
+
 
     - The server parameter can have following formats:
 
@@ -54,10 +56,13 @@ class ElasticSearch(Actor):
         - thrift://127.0.0.1:9500
 
 
-    - event["data"] is considered to be in JSON format.
-    - if event["data"] is of type list then the list members are
-      considered to be JSON format.
+    - The payload event["data"] should be a dictionary.  The pyes
+    module takes care of any conversion.
 
+    - The index and type has to be known when indexing a document.
+    This module expects these values to be in the header part of
+    the event:
+        {<self.name>:{"index":"value","type":"value"}}
     '''
 
     def __init__(self, name, server="http://127.0.0.1:9200", ):
@@ -76,17 +81,18 @@ class ElasticSearch(Actor):
     def consume(self, event):
 
         try:
-            self.conn.index(event["data"], event["header"]["index"], event["header"]["type"])
+            self.conn.index(event["data"], event["header"][self.name]["index"], event["header"][self.name]["type"])
         except Exception as err:
             self.logging.warn("Unable to index document.  Reason: %s"%(err))
             self.queuepool.rescue.put(event)
-            sleep(1)
 
     def getConnection(self):
         return pyes.ES(self.server)
 
     def connectionMonitor(self):
-        """creates self.conn
+        """Tries to establish a valid ES connection.
+
+        Blocks/unblocks the inbox queue based on ES connectivity.
         """
 
         while self.loop():

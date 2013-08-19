@@ -19,6 +19,8 @@ Queues:
 
     - inbox:    Incoming events.
 
+    - rescue:   Events which failed to submit.
+
 
 - The server parameter can have following formats:
 
