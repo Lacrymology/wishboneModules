@@ -29,6 +29,10 @@ Queues:
     - thrift://127.0.0.1:9500
 
 
-- event["data"] is considered to be in JSON format.
-- if event["data"] is of type list then the list members are
-  considered to be JSON format.
+- The payload event["data"] should be a dictionary.  The pyes
+module takes care of any conversion.
+
+- The index and type has to be known when indexing a document.
+This module expects these values to be in the header part of
+the event:
+    {<self.name>:{"index":"value","type":"value"}}
