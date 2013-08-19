@@ -37,7 +37,7 @@ class AMQP(Actor):
 
     All incoming messages should have at least following header:
 
-        {'header':{'broker_exchange':name, 'broker_key':name, 'broker_tag':tag}}
+        {<self.name>:{'broker_exchange':name, 'broker_key':name, 'broker_tag':tag}}
 
         - broker_exchange:    The exchange to which data should be submitted.
         - broker_key:         The routing key used when submitting data.
@@ -67,7 +67,9 @@ class AMQP(Actor):
 
     Queues:
 
-        - inbox:              Messages to the broker.
+        - inbox:    Events to the broker.
+
+        - rescue:   Events which failed to submit.
     '''
 
     def __init__(self, name, host, vhost='/', username='guest', password='guest', delivery_mode=2, auto_create=True ):
@@ -135,28 +137,24 @@ class AMQP(Actor):
     def brokerCreateBinding(self,exchange,key):
         '''Create binding between exchange and queue.'''
         if exchange != "":
-            self.logging.info("Createing binding between exchange %s and queue %s"%(exchange, key))
+            self.logging.info("Creating binding between exchange %s and queue %s"%(exchange, key))
             self.producer_channel.queue_bind(key, exchange=exchange, routing_key=key, nowait=False)
 
     def produceMessage(self, message):
         '''Is called upon each event going to the broker infrastructure.'''
 
         try:
-            if message["header"].has_key('broker_exchange') and message["header"].has_key('broker_key'):
-                if self.auto_create==True:
-                    self.createBrokerConfig(message["header"]["broker_exchange"],message["header"]["broker_key"])
-
-                if isinstance(message["data"], list):
-                    data = ''.join(message["data"])
-                else:
-                    data = message["data"]
-                msg = amqp.Message(data)
-                msg.properties["delivery_mode"] = self.delivery_mode
-
-                self.producer_channel.basic_publish(msg,exchange=message['header']['broker_exchange'],routing_key=message['header']['broker_key'])
-
+            if self.auto_create==True:
+                self.createBrokerConfig(message["header"][self.name]["broker_exchange"],message["header"][self.name]["broker_key"])
+            if isinstance(message["data"], list):
+                data = ''.join(message["data"])
             else:
-                self.logging.warn('Received data for broker without exchange or routing key in header. Purged.')
+                data = message["data"]
+            msg = amqp.Message(data)
+            msg.properties["delivery_mode"] = self.delivery_mode
+            self.producer_channel.basic_publish(msg,exchange=message['header'][self.name]['broker_exchange'],routing_key=message['header'][self.name]['broker_key'])
+        except KeyError as err:
+            self.logging.warn("Event purged.  Header is missing information.  Reason: %s"%(err))
         except Exception as err:
             self.logging.debug("Failed to submit event to broker.  Reason: %s"%(err))
             self.waiter.set()
