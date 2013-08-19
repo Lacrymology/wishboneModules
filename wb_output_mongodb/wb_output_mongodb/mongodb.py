@@ -24,7 +24,8 @@
 
 from wishbone import Actor
 from wishbone.tools import Measure
-from gevent import Greenlet, spawn, sleep
+from gevent import spawn, sleep
+from gevent.event import Event
 import pymongo
 from pymongo.errors import AutoReconnect, CollectionInvalid
 
@@ -65,7 +66,8 @@ class MongoDB(Actor):
 
     def __init__(self, name, host="localhost", db="wishbone", collection="wishbone", capped=False, size=100000, max=100000, drop_db=False):
         Actor.__init__(self, name, setupbasic=False)
-        self.createQueue("inbox", 1000)
+        self.createQueue("inbox",)
+        self.createQueue("rescue")
         self.registerConsumer(self.consume, self.queuepool.inbox)
         self.queuepool.inbox.putLock()
 
@@ -82,27 +84,22 @@ class MongoDB(Actor):
         self.mongo=None
         self.connection=None
 
+        self.waiter=Event()
+        self.waiter.set()
+
     def preHook(self):
         '''Creates the capped collection if required.
         '''
+        spawn(self.connectionMonitor)
 
-        spawn(self.createConnection)
+    def connectionMonitor(self):
 
-    @Measure.runTime
-    def consume(self, event):
         while self.loop():
-            try:
-                self.mongo.insert(event["data"])
-                break
-            except Exception as err:
-                self.logging.warn('Problem inserting data into MongoDB.  Reason: %s'%(err))
-                self.createConnection()
-                self.queuepool.inbox.putUnlock()
-
-    def createConnection(self):
-        (self.connection, self.mongo) = self.setupConnection()
-        self.queuepool.inbox.putUnlock()
-
+            self.waiter.wait()
+            self.queuepool.inbox.putLock()
+            (self.connection, self.mongo) = self.setupConnection()
+            self.queuepool.inbox.putUnlock()
+            self.waiter.clear()
 
     def setupConnection(self):
         '''Creates a MongoDB connection object and a collection object.
@@ -110,7 +107,7 @@ class MongoDB(Actor):
 
         while self.loop():
             try:
-                connection = pymongo.MongoClient(self.host, use_greenlets=True)
+                connection = pymongo.Connection(self.host, use_greenlets=True)
                 self.logging.info("Connected to MongoDB host %s"%(self.host))
 
                 try:
@@ -119,16 +116,24 @@ class MongoDB(Actor):
                         self.logging.info("Created capped collection %s in DB %s."%(self.collection, self.db))
                     else:
                         connection[self.db].create_collection(self.collection)
-                        self.logging.info("Created capped collection %s in DB %s."%(self.collection, self.db))
+                        self.logging.info("Created collection %s in DB %s."%(self.collection, self.db))
                 except CollectionInvalid:
-                    self.logging.warn("Collection already exists.  Using that one.")
+                        self.logging.warn("Collection already exists.  Using that one.")
 
                 return (connection, connection[self.db][self.collection])
 
             except Exception as err:
-                self.queuepool.inbox.putLock()
                 self.logging.warn("Failed to create MongoDB collection.  Reason: %s.  Will retry in 1 second."%(err))
-                sleep(1)
+            sleep(1)
+
+    @Measure.runTime
+    def consume(self, event):
+        try:
+            self.mongo.insert(event["data"])
+        except Exception as err:
+            self.logging.warn('Problem inserting data to MongoDB.  Reason: %s'%(err))
+            self.queuepool.rescue.put(event)
+            self.waiter.set()
 
     def postHook(self):
         if self.drop_db == True:
