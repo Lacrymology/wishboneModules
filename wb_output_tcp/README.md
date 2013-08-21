@@ -24,11 +24,9 @@ Parameters:
     - stream (bool):    Keep the connection open.
                         Default: False
 
-    - rescue (bool):    When True events which failed to submit
-                        successfully are put into the recue queue.
-                        Default: False
 
 Queues:
 
     - inbox:    Incoming events submitted to the outside.
+
     - rescue:   Contains events which failed to go out succesfully.

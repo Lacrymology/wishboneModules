@@ -46,10 +46,6 @@ class TCP(Actor):
                             connecting
                             Default: 1
 
-        - stream (bool):    Keep the connection open.
-                            Default: False
-
-
     Queues:
 
         - inbox:    Incoming events submitted to the outside.
@@ -59,8 +55,8 @@ class TCP(Actor):
 
     '''
 
-    def __init__(self, name, limit=0, host="localhost", port=19283, timeout=1):
-        Actor.__init__(self, name, limit=limit, setupbasic=False)
+    def __init__(self, name, host="localhost", port=19283, timeout=1):
+        Actor.__init__(self, name, setupbasic=False)
         self.createQueue("rescue")
         self.createQueue("inbox", 1000)
         self.queuepool.inbox.putLock()
