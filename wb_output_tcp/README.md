@@ -21,10 +21,6 @@ Parameters:
                         connecting
                         Default: 1
 
-    - stream (bool):    Keep the connection open.
-                        Default: False
-
-
 Queues:
 
     - inbox:    Incoming events submitted to the outside.
