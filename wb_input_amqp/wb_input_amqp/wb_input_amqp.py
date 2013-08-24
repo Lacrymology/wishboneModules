@@ -73,7 +73,7 @@ class AMQP(Actor):
         - acknowledge:        Message tags to acknowledge with the broker.
     '''
 
-    def __init__(self, name, host, vhost='/', username='guest', password='guest', prefetch_count=1, no_ack=True, queue=False, auto_create=True ):
+    def __init__(self, name, host="localhost", vhost='/', username='guest', password='guest', prefetch_count=1, no_ack=True, queue=False, auto_create=True ):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.logging.info('Initiated')
         self.createQueue("outbox")
@@ -122,10 +122,11 @@ class AMQP(Actor):
 
     def drainEvents(self):
         while self.loop():
-            try:
-                self.consumer_channel.wait()
-            except:
-                self.setupConnection()
+            self.consumer_channel.wait()
+            # try:
+            #     self.consumer_channel.wait()
+            # except:
+            #     self.setupConnection()
 
     @safe
     def setupConnection(self):
@@ -167,7 +168,18 @@ class AMQP(Actor):
     def consumeMessage(self, message):
         '''Is called upon each message coming from the broker infrastructure.'''
 
-        self.putEvent({'header':{'broker_tag':message.delivery_tag},'data':message.body}, self.queuepool.outbox)
+        event={'header':{self.name:{'broker_tag':message.delivery_tag}},'data':message.body}
+
+        while self.loop():
+            try:
+                self.queuepool.outbox.put(event)
+                break
+            except QueueLocked:
+                self.logging.debug("Setting channel flow to False.")
+                self.consumer_channel.flow(False)
+                self.queuepool.outbox.waitUntilPutAllowed()
+                self.consumer_channel.flow(True)
+                self.logging.debug("Setting channel flow to True.")
 
     def createBrokerConfig(self, exchange, key):
         '''Create the provided exchange a queue with the keyname and binding.'''
