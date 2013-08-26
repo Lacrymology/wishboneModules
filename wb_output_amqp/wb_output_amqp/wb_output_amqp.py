@@ -150,13 +150,13 @@ class AMQP(Actor):
                 data = ''.join(message["data"])
             else:
                 data = message["data"]
-            msg = amqp.Message(data)
+            msg = amqp.Message(str(data))
             msg.properties["delivery_mode"] = self.delivery_mode
             self.producer_channel.basic_publish(msg,exchange=message['header'][self.name]['broker_exchange'],routing_key=message['header'][self.name]['broker_key'])
         except KeyError as err:
             self.logging.warn("Event purged.  Header is missing information.  Reason: %s"%(err))
         except Exception as err:
-            self.logging.debug("Failed to submit event to broker.  Reason: %s"%(err))
+            self.logging.warn("Failed to submit event to broker.  Reason: %s"%(err))
             self.waiter.set()
             self.queuepool.inbox.putLock()
             self.queuepool.rescue.put(message)
