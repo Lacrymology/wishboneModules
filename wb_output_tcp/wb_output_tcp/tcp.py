@@ -55,7 +55,7 @@ class TCP(Actor):
 
     '''
 
-    def __init__(self, name, host="localhost", port=19283, timeout=1):
+    def __init__(self, name, host="localhost", port=19283, timeout=10):
         Actor.__init__(self, name, setupbasic=False)
         self.createQueue("rescue")
         self.createQueue("inbox", 1000)
@@ -106,6 +106,7 @@ class TCP(Actor):
                 s = socket.socket()
                 s.settimeout(self.timeout)
                 s.connect((self.host, self.port))
+                self.logging.info("Connected to %s port %s."%(self.host, self.port))
                 return s
             except Exception as err:
                 self.logging.warn("Failed to connect to %s port %s. Reason: %s. Retry in 1 second."%(self.host, self.port, err))
