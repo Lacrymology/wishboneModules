@@ -73,7 +73,7 @@ class AMQP(Actor):
     '''
 
     def __init__(self, name, host, vhost='/', username='guest', password='guest', delivery_mode=2, auto_create=True ):
-        Actor.__init__(self, name, setupbasic=False, limit=0)
+        Actor.__init__(self, name, setupbasic=False)
         self.createQueue("inbox")
         self.queuepool.inbox.putLock()
         self.createQueue("rescue")
