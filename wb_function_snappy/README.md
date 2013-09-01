@@ -28,4 +28,5 @@ Parameters:
 Queues:
 
     - inbox:    Incoming events.
+
     - outbox:   Outgoing events.
