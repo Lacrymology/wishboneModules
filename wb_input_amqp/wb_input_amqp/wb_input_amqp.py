@@ -160,8 +160,8 @@ class AMQP(Actor):
 
     @safe
     def acknowledgeMessage(self, event):
-        if "broker_tag" in event["header"]:
-            self.consumer_channel.basic_ack(event["header"]["broker_tag"])
+        if self.name in event["header"] and "broker_tag" in event["header"][self.name]:
+            self.consumer_channel.basic_ack(event["header"][self.name]["broker_tag"])
         else:
             self.logging.warn("Received a message to acknowledge but no broker_tag found.")
 
