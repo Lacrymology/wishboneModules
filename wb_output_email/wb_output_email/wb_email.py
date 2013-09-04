@@ -87,21 +87,19 @@ class Email(Actor):
                 self.logging.warn("Event received without <%s> header key. Purged"%(item))
                 return
         try:
-            mta=smtplib.SMTP(self.mta)
+            message = msg=MIMEText(str(event["data"]))
+            message["Subject"] = event["header"][self.key]["subject"]
+            message["From"] = event["header"][self.key]["from"]
+            message["To"] = ",".join(event["header"][self.key]["to"])
 
+            mta=smtplib.SMTP(self.mta)
             mta.sendmail(event["header"][self.key]["from"],
                 event["header"][self.key]["to"],
-                str(event["data"])
+                message.as_string()
             )
 
             if self.success==True:
                 self.queuepool.success.put(event)
-
-        except QueueLocked:
-            self.queuepool.inbox.rescue(event)
-            self.queuepool.inbox.putLock()
-            self.queuepool.outbox.waitUntilPutAllowed()
-            self.queuepool.inbox.putUnlock()
 
         except Exception as err:
             if self.failed==True:
