@@ -46,6 +46,9 @@ class TCP(Actor):
                             connecting
                             Default: 1
 
+        - delimiter(str):   A delimiter to add to each event.
+                            Default: "\n"
+
     Queues:
 
         - inbox:    Incoming events submitted to the outside.
@@ -55,7 +58,7 @@ class TCP(Actor):
 
     '''
 
-    def __init__(self, name, host="localhost", port=19283, timeout=10):
+    def __init__(self, name, host="localhost", port=19283, timeout=10, delimiter="\n"):
         Actor.__init__(self, name, setupbasic=False)
         self.createQueue("rescue")
         self.createQueue("inbox", 1000)
@@ -66,6 +69,7 @@ class TCP(Actor):
         self.host=host
         self.port=port
         self.timeout=timeout
+        self.delimiter=delimiter
 
         self.__connect=Event()
         self.__connect.set()
@@ -73,14 +77,14 @@ class TCP(Actor):
     def preHook(self):
         spawn(self.connectionMonitor)
 
-    @Measure.runTime
+    #@Measure.runTime
     def consume(self, event):
         if isinstance(event["data"],list):
             data = ''.join(event["data"])
         else:
             data = event["data"]
         try:
-            self.socket.send(str(data))
+            self.socket.send(str(data)+self.delimiter)
         except Exception as err:
             self.__connect.set()
             self.logging.debug('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))

@@ -5,24 +5,31 @@ version: 0.1
 
 **A Wishbone IO module which writes data to a TCP socket.**
 
-Writes data to a tcp socket.
+    Writes data to a tcp socket.
 
-Parameters:
+    Parameters:
 
-    - name (str):       The instance name when initiated.
+        - name (str):       The instance name when initiated.
 
-    - host (string):    The host to submit to.
-                        Default: "localhost"
+        - host (string):    The host to submit to.
+                            Default: "localhost"
 
-    - port (int):       The port to submit to.
-                        Default: 19283
+        - port (int):       The port to submit to.
+                            Default: 19283
 
-    - timeout(int):     The time in seconds to timeout when
-                        connecting
-                        Default: 1
+        - timeout(int):     The time in seconds to timeout when
+                            connecting
+                            Default: 1
 
-Queues:
+        - delimiter(str):   A delimiter to add to each event.
+                            Default: "
+"
 
-    - inbox:    Incoming events submitted to the outside.
+    Queues:
 
-    - rescue:   Contains events which failed to go out succesfully.
+        - inbox:    Incoming events submitted to the outside.
+
+        - rescue:   Contains events which failed to go out succesfully.
+
+
+    
