@@ -34,8 +34,8 @@ AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ "mosquitto" ]
 ENTRY_POINTS={
-    "wishbone.function": [
-        "mqtt = wb_output_mqtt.wb_output_mqtt:MQTT"
+    "wishbone.output": [
+        "mqtt = wb_output_mqtt.mqtt:MQTT"
     ]
 }
 ###############################################################
