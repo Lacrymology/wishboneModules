@@ -52,6 +52,12 @@ class TCP(Actor):
                                 connections.  0 means "unlimited".
                                 Default: 0
 
+        - reuse_port(bool):     Whether or not to set the SO_REUSEPORT
+                                socket option.  Interesting when starting
+                                multiple instances and allow them to bind
+                                to the same port.
+                                Default: False
+
 
     Queues:
 
@@ -72,7 +78,7 @@ class TCP(Actor):
     stream data.
     '''
 
-    def __init__(self, name, port=19283, address='0.0.0.0', delimiter=None, max_connections=0):
+    def __init__(self, name, port=19283, address='0.0.0.0', delimiter=None, max_connections=0, reuse_port=False):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.createQueue("outbox")
         self.name=name
@@ -80,6 +86,7 @@ class TCP(Actor):
         self.address=address
         self.delimiter=delimiter
         self.max_connections=max_connections
+        self.reuse_port=reuse_port
         self.logging.info("Initialized")
 
     def preHook(self):
@@ -91,7 +98,13 @@ class TCP(Actor):
 
     def __setupSocket(self, address, port):
         sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        if self.reuse_port:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setsockopt(socket.SOL_SOCKET, 15, 1)
+        else:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
         sock.setblocking(0)
         sock.bind((address, port))
         sock.listen(1)
@@ -105,8 +118,9 @@ class TCP(Actor):
             chunk = sfile.readlines()
             self.putEvent({'header':{},'data':''.join(chunk)}, self.queuepool.outbox)
         else:
-            while self.block()==True:
+            while self.loop():
                 chunk = sfile.readline()
+
                 if chunk == "":
                     if len(data) > 0:
                         self.putEvent({'header':{},'data':''.join(data)}, self.queuepool.outbox)
