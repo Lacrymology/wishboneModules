@@ -53,15 +53,18 @@ class TCP(Actor):
 
         - inbox:    Incoming events submitted to the outside.
 
-        - rescue:   Contains events which failed to go out succesfully.
+        - success:  Contains events which went out succesfully.
+                    (optional)
+
+        - failed:   Contains events which did not go out successfully.
+                    (optional)
 
 
     '''
 
-    def __init__(self, name, host="localhost", port=19283, timeout=10, delimiter="\n"):
+    def __init__(self, name, host="localhost", port=19283, timeout=10, delimiter="\n", success=False, failed=False):
         Actor.__init__(self, name, setupbasic=False)
-        self.createQueue("rescue")
-        self.createQueue("inbox", 1000)
+        self.createQueue("inbox")
         self.queuepool.inbox.putLock()
         self.registerConsumer(self.consume, self.queuepool.inbox)
 
@@ -74,10 +77,21 @@ class TCP(Actor):
         self.__connect=Event()
         self.__connect.set()
 
+        if success == True:
+            self.createQueue("successful")
+            self.submitSuccess=self.__submitSuccess
+        else:
+            self.submitSuccess=self.__noSubmitSuccess
+        if failed == True:
+            self.createQueue("failed")
+            self.submitFailed=self.__submitFailed
+        else:
+            self.submitFailed=self.__noSubmitFailed
+
     def preHook(self):
         spawn(self.connectionMonitor)
 
-    #@Measure.runTime
+    @Measure.runTime
     def consume(self, event):
         if isinstance(event["data"],list):
             data = ''.join(event["data"])
@@ -85,7 +99,9 @@ class TCP(Actor):
             data = event["data"]
         try:
             self.socket.send(str(data)+self.delimiter)
+            self.submitSuccess(event)
         except Exception as err:
+            self.submitFailed(event)
             self.__connect.set()
             self.logging.debug('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
 
@@ -115,3 +131,15 @@ class TCP(Actor):
             except Exception as err:
                 self.logging.warn("Failed to connect to %s port %s. Reason: %s. Retry in 1 second."%(self.host, self.port, err))
                 sleep(1)
+
+    def __submitSuccess(self, event):
+        self.queuepool.success.put(event)
+
+    def __noSubmitSuccess(self, event):
+        pass
+
+    def __submitFailed(self, event):
+        self.queuepool.failed.put(event)
+
+    def __noSubmitFailed(self, event):
+        self.queuepool.inbox.rescue(event)
