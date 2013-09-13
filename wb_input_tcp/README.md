@@ -25,6 +25,12 @@ Parameters:
                             connections.  0 means "unlimited".
                             Default: 0
 
+    - reuse_port(bool):     Whether or not to set the SO_REUSEPORT
+                            socket option.  Interesting when starting
+                            multiple instances and allow them to bind
+                            to the same port.
+                            Default: False
+
 
 Queues:
 
