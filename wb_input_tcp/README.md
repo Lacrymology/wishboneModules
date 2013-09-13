@@ -29,6 +29,7 @@ Parameters:
                             socket option.  Interesting when starting
                             multiple instances and allow them to bind
                             to the same port.
+                            Requires Linux kernel >= 3.9
                             Default: False
 
 
