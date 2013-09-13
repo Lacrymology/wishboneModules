@@ -99,6 +99,7 @@ class DictGenerator(Actor):
                 data[self.generateKey()]=self.generateValue()
             sleep(self.sleep)
             self.putEvent({"header":{},"data":data}, self.queuepool.outbox)
+            self.key_number=-1
 
     def __startGeneratingNoSleep(self):
 
@@ -109,6 +110,7 @@ class DictGenerator(Actor):
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
             self.putEvent({"header":{},"data":data}, self.queuepool.outbox)
+            self.key_number=-1
 
     def readWordList(self, filename):
         '''Reads and returns the wordlist as a tuple.'''

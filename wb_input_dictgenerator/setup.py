@@ -28,11 +28,11 @@ import ast
 ###############################################################
 PROJECT = 'wb_input_dictgenerator'
 MODULE = 'DictGenerator'
-VERSION = "0.1"
+VERSION = "0.2"
 FILE = "wb_input_dictgenerator/wb__input_dictgenerator.py"
 AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
-INSTALL_REQUIRES= [ ]
+INSTALL_REQUIRES= [ "num2words" ]
 ENTRY_POINTS={
     "wishbone.input": [
         "dictgenerator = wb_input_dictgenerator.wb__input_dictgenerator:DictGenerator"

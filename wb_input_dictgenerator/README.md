@@ -1,7 +1,7 @@
 wb_input_dictgenerator
 ======================
 
-version: 0.1
+version: 0.2
 
 **A WishBone input module which generates dictionaries build out of words randomly
 chosen from a provided wordlist.**
