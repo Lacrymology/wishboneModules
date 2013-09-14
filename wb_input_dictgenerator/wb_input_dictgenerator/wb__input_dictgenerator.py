@@ -58,7 +58,6 @@ class DictGenerator(Actor):
     def __init__(self, name, filename=None, randomize_keys=True, num_values=False, num_values_min=0, num_values_max=1, min_elements=1, max_elements=1, sleep=0 ):
         Actor.__init__(self, name, setupbasic=False, limit=0)
         self.createQueue("outbox")
-        self.logging.info ( 'Initiated' )
         self.name = name
         self.filename=filename
         self.randomize_keys=randomize_keys

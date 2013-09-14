@@ -80,7 +80,6 @@ class MongoDB(Actor):
         self.max=max
         self.drop_db=drop_db
 
-        self.logging.info('Initiated')
         self.mongo=None
         self.connection=None
 

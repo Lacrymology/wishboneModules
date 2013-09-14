@@ -77,7 +77,6 @@ class Generator(Actor):
         self.createQueue("outbox")
         self.registerConsumer(self.consume, self.queuepool.temp)
 
-        self.logging.info ( 'Initiated' )
         self.name = name
         self.min_payload=min_payload
         self.max_payload=max_payload

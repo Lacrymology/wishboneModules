@@ -73,8 +73,6 @@ class Gearman(Actor):
             self.cipher=AES.new(key+chr(0)*(32-len(key)))
             self.decrypt = self.__encryptedJob
 
-        self.logging.info ( 'Initiated' )
-
     def preHook(self):
         for _ in range (self.workers):
             spawn(self.gearmanWorker)

@@ -79,7 +79,6 @@ class AMQP(Actor):
         self.createQueue("rescue")
         self.registerConsumer(self.produceMessage, self.queuepool.inbox)
         self.name=name
-        self.logging.info('Initiated')
         self.host=host
         self.vhost=vhost
         self.username=username
