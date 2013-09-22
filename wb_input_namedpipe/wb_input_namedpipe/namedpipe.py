@@ -48,7 +48,6 @@ class NamedPipe(Actor):
         self.createQueue("outbox")
         self.name=name
         self.path = path
-        self.logging.info('Initialiazed.')
 
     def preHook(self):
 
@@ -79,7 +78,6 @@ class NamedPipe(Actor):
                     sleep(0.1)
 
     def postHook(self):
-        self.fifo.close()
+        #self.fd.close()
         os.unlink(self.path)
-        self.logging.info('Shutdown')
 
