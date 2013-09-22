@@ -29,7 +29,11 @@ version: 0.1
 
         - inbox:    Incoming events submitted to the outside.
 
-        - rescue:   Contains events which failed to go out succesfully.
+        - success:  Contains events which went out succesfully.
+                    (optional)
+
+        - failed:   Contains events which did not go out successfully.
+                    (optional)
 
 
     
