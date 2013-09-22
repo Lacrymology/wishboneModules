@@ -66,7 +66,7 @@ class NamedPipe(Actor):
         self.logging.info('Started.')
 
         switcher = self.getContextSwitcher(100, self.loop)
-        while self.switcher.do():
+        while switcher.do():
             try:
                 lines = os.read(self.fd, 4096).splitlines()
             except OSError:
