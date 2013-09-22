@@ -34,7 +34,7 @@ AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
 INSTALL_REQUIRES= [ ]
 ENTRY_POINTS={
-    "wishbone.function": "email = wb_output_email.wb_email:Email"
+    "wishbone.output": "email = wb_output_email.wb_email:Email"
 }
 ###############################################################
 
