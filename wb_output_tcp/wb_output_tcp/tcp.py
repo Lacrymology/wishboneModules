@@ -110,6 +110,7 @@ class TCP(Actor):
             self.__connect.wait()
             self.queuepool.inbox.putLock()
             try:
+                self.socket.shutdown()
                 self.socket.close()
             except:
                 pass
