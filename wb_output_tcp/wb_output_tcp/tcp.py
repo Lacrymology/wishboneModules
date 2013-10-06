@@ -74,8 +74,8 @@ class TCP(Actor):
         self.timeout=timeout
         self.delimiter=delimiter
 
-        self.__connect=Event()
-        self.__connect.set()
+        self.__reconnect=Event()
+        self.__reconnect.set()
 
         if success == True:
             self.createQueue("successful")
@@ -94,20 +94,21 @@ class TCP(Actor):
     @Measure.runTime
     def consume(self, event):
         if isinstance(event["data"],list):
-            data = ''.join(event["data"])
+            data = self.delimiter.join(event["data"])
         else:
             data = event["data"]
         try:
-            self.socket.send(str(data)+self.delimiter)
+            self.socket.sendall(str(data)+self.delimiter)
             self.submitSuccess(event)
         except Exception as err:
             self.submitFailed(event)
-            self.__connect.set()
-            self.logging.debug('Failed to submit data to %s port %s.  Reason %s. Sending back to rescue queue.'%(self.host, self.port, err))
+            self.__reconnect.set()
+            self.disableConsuming()
+            self.logging.warn('Failed to submit data to %s port %s.  Reason %s.'%(self.host, self.port, err))
 
     def connectionMonitor(self):
         while self.loop():
-            self.__connect.wait()
+            self.__reconnect.wait()
             self.queuepool.inbox.putLock()
             try:
                 self.socket.shutdown()
@@ -115,8 +116,9 @@ class TCP(Actor):
             except:
                 pass
             self.socket=self.getSocket()
+            self.__reconnect.clear()
+            self.enableConsuming()
             self.queuepool.inbox.putUnlock()
-            self.__connect.clear()
 
     def getSocket(self):
         '''Returns a socket object and locks inbox queue when this is not possible.
