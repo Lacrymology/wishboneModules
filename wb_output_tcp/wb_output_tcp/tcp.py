@@ -93,6 +93,7 @@ class TCP(Actor):
         if failed == True:
             self.createQueue("failed")
             self.submitFailed=self.__submitFailed
+            self.disableConsuming=self.noDisableConsuming
         else:
             self.submitFailed=self.__noSubmitFailed
 
@@ -113,6 +114,9 @@ class TCP(Actor):
             self.__reconnect.set()
             self.disableConsuming()
             self.logging.warn('Failed to submit data to %s port %s.  Reason %s.'%(self.host, self.port, err))
+
+    def noDisableConsuming(self):
+        pass
 
     def connectionMonitor(self):
         while self.loop():
