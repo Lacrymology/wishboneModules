@@ -47,7 +47,15 @@ class TCP(Actor):
                             Default: 1
 
         - delimiter(str):   A delimiter to add to each event.
-                            Default: "\n"
+                            Default: "\\n"
+
+        - success (bool):   When True, submits succesfully outgoing
+                            events to the 'success' queue.
+                            Default: False
+
+        - failed (bool):    When True, submits failed outgoing
+                            events to the 'failed' queue.
+                            Default: False
 
     Queues:
 
