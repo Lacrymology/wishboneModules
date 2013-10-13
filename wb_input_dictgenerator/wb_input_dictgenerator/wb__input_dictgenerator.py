@@ -81,6 +81,7 @@ class DictGenerator(Actor):
         else:
             self.generateValue = self.pickWord
 
+
     def start(self):
         self.logging.info('Started')
         if self.sleep > 0:
@@ -103,7 +104,6 @@ class DictGenerator(Actor):
     def __startGeneratingNoSleep(self):
 
         switcher = self.getContextSwitcher(100, self.loop)
-
         while switcher.do():
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
