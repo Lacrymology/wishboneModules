@@ -80,7 +80,7 @@ class TCP(Actor):
     '''
 
     def __init__(self, name, port=19283, address='0.0.0.0', delimiter=None, max_connections=0, reuse_port=False):
-        Actor.__init__(self, name, setupbasic=False, limit=0)
+        Actor.__init__(self, name, setupbasic=False)
         self.createQueue("outbox")
         self.name=name
         self.port=port
@@ -143,10 +143,18 @@ class TCP(Actor):
         if self.max_connections > 0:
             pool = Pool(self.max_connections)
             self.logging.debug("Setting up a connection pool of %s connections."%(self.max_connections))
-            StreamServer(self.sock, self.handle, spawn=pool).start()
+            self.stream_server = StreamServer(self.sock, self.handle, spawn=pool)
+            self.stream_server.start()
         else:
-            StreamServer(self.sock, self.handle).start()
+            self.stream_server = StreamServer(self.sock, self.handle)
+            self.stream_server.start()
         self.block()
+
+    def enableThrottling(self):
+        self.stream_server.stop_accepting()
+
+    def disableThrottling(self):
+        self.stream_server.start_accepting()
 
     def shutdown(self):
         self.logging.info('Shutdown')

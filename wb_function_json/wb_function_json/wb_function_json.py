@@ -66,7 +66,7 @@ class JSON(Actor):
 
     def __init__(self, name, mode="pass", schema=''):
 
-        Actor.__init__(self, name, limit=0)
+        Actor.__init__(self, name)
         self.name=name
         self.mode=mode
         self.schema=schema

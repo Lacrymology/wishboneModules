@@ -46,7 +46,7 @@ class Msgpack(Actor):
     '''
 
     def __init__(self, name, mode="pack"):
-        Actor.__init__(self, name, limit=0)
+        Actor.__init__(self, name)
         if mode == "pack":
             self.do = self.pack
         elif mode == "unpack":

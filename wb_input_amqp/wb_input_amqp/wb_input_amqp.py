@@ -74,7 +74,7 @@ class AMQP(Actor):
     '''
 
     def __init__(self, name, host="localhost", vhost='/', username='guest', password='guest', prefetch_count=1, no_ack=True, queue=False, auto_create=True ):
-        Actor.__init__(self, name, setupbasic=False, limit=0)
+        Actor.__init__(self, name, setupbasic=False)
         self.createQueue("outbox")
         self.createQueue("acknowledge")
         self.registerConsumer(self.acknowledgeMessage, self.queuepool.acknowledge)

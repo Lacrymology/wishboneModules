@@ -49,7 +49,7 @@ class UDP(DatagramServer, Actor):
 
     def __init__(self, name, address="0.0.0.0", port=19283):
         DatagramServer.__init__(self, "%s:%s"%(address, port))
-        Actor.__init__(self, name, setupbasic=False, limit=0)
+        Actor.__init__(self, name, setupbasic=False)
         self.createQueue("outbox")
         self.name = name
         self._address = address

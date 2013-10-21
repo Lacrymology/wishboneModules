@@ -64,7 +64,7 @@ class UDS(Actor):
     '''
 
     def __init__(self, name, path="/tmp/%s.socket"%(getpid()), delimiter=None, max_connections=0):
-        Actor.__init__(self, name, setupbasic=False, limit=0)
+        Actor.__init__(self, name, setupbasic=False)
         self.createQueue("outbox")
         self.name=name
         self.path=path

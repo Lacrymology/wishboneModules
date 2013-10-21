@@ -66,7 +66,7 @@ class ElasticSearch(Actor):
     '''
 
     def __init__(self, name, server="http://127.0.0.1:9200", ):
-        Actor.__init__(self, name, setupbasic=True, limit=0)
+        Actor.__init__(self, name, setupbasic=True)
         self.createQueue("rescue")
         self.server=server
         self.logging.info("Initialized")

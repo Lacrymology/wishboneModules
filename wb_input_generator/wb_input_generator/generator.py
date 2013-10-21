@@ -72,7 +72,7 @@ class Generator(Actor):
     '''
 
     def __init__(self, name, min_payload=1, max_payload=1, min_interval=0, max_interval=0.5, min_outage_start=10, max_outage_start=60, min_outage_length=0, max_outage_length=5):
-        Actor.__init__(self, name, setupbasic=False, limit=0)
+        Actor.__init__(self, name, setupbasic=False)
         self.createQueue("temp")
         self.createQueue("outbox")
         self.registerConsumer(self.consume, self.queuepool.temp)

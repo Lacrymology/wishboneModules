@@ -46,7 +46,7 @@ class Skeleton(Actor):
     __version__ = 0.1
 
     def __init__(self, name):
-        Actor.__init__(self, name, setupbasic=True, limit=0)
+        Actor.__init__(self, name, setupbasic=True)
         self.logging.info("Initialized")
 
     def consume(self, event):
