@@ -19,7 +19,8 @@ version: 0.1
 
         - delimiter (str):      The delimiter which separates multiple
                                 messages in a stream of data.
-                                Default: None
+                                Default: "
+"
 
         - max_connections(int): The maximum number of simultaneous
                                 connections.  0 means "unlimited".
@@ -52,5 +53,6 @@ version: 0.1
     and stream data.
 
     Choosing "
-" as a delimiter (each new line is a new event) appears to be
-    the fastest. 
+" as a delimiter, which is the default, each new line is a new event.
+
+    

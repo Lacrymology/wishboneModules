@@ -46,7 +46,7 @@ class TCP(Actor):
 
         - delimiter (str):      The delimiter which separates multiple
                                 messages in a stream of data.
-                                Default: None
+                                Default: "\n"
 
         - max_connections(int): The maximum number of simultaneous
                                 connections.  0 means "unlimited".
@@ -78,10 +78,11 @@ class TCP(Actor):
     Wishbone message/event.  The advantage is that a client can stay connected
     and stream data.
 
-    Choosing "\n" as a delimiter (each new line is a new event) appears to be
-    the fastest. '''
+    Choosing "\n" as a delimiter, which is the default, each new line is a new event.
 
-    def __init__(self, name, port=19283, address='0.0.0.0', delimiter=None, max_connections=0, reuse_port=False):
+    '''
+
+    def __init__(self, name, port=19283, address='0.0.0.0', delimiter="\n", max_connections=0, reuse_port=False):
         Actor.__init__(self, name, setupbasic=False)
         self.createQueue("outbox")
         self.name=name
