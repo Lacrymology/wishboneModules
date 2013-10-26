@@ -138,7 +138,7 @@ class TCP(Actor):
                 self.logging.debug("Client %s disconnected."%(str(address[0])))
                 break
             else:
-                self.putEvent({'header':{},'data':chunk}, self.queuepool.outbox)
+                self.putEvent({'header':{},'data':chunk.rstrip('\r\n')}, self.queuepool.outbox)
 
 
     def __handleDelimiter(self, sock, address):
