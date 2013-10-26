@@ -69,15 +69,17 @@ class TCP(Actor):
     ~~~~~~~~~
 
     When no delimiter is defined, all incoming data between connect and
-    disconnect is considered to be 1 Wishbone message/event. When a delimiter
-    is defined, Wishbone tries to extract multiple events out of a data
-    stream.  Wishbone will check each line of data whether it ends with the
-    delimiter.  If not the line will be added to an internal buffer.  If so,
-    the delimiter will be stripped of and when there is data left, it will be
-    added to the buffer after which the buffer will be flushed as one Wishbone
-    message/event.  The advantage is that a client can stay connected and
-    stream data.
-    '''
+    disconnect is considered to be 1 event. When a delimiter is defined,
+    multiple events are extracted out of a data stream using the defined
+    delimiter.  The module will check each line of data whether it ends with
+    the delimiter.  If not the line will be added to an internal buffer.  If
+    so, the delimiter will be stripped of and when there is data left, it will
+    be added to the buffer after which the buffer will be flushed as one
+    Wishbone message/event.  The advantage is that a client can stay connected
+    and stream data.
+
+    Choosing "\n" as a delimiter (each new line is a new event) appears to be
+    the fastest. '''
 
     def __init__(self, name, port=19283, address='0.0.0.0', delimiter=None, max_connections=0, reuse_port=False):
         Actor.__init__(self, name, setupbasic=False)
@@ -88,7 +90,12 @@ class TCP(Actor):
         self.delimiter=delimiter
         self.max_connections=max_connections
         self.reuse_port=reuse_port
-        self.logging.info("Initialized")
+        if self.delimiter == None:
+            self.handle = self.__handleNoDelimiter
+        elif self.delimiter == "\n":
+            self.handle = self.__handleNextLine
+        else:
+            self.handle = self.__handleDelimiter
 
     def preHook(self):
         self.sock=self.__setupSocket(self.address, self.port)
@@ -111,31 +118,52 @@ class TCP(Actor):
         sock.listen(1)
         return sock
 
-    def handle(self, sock, address):
+    def __handleNoDelimiter(self, sock, address):
+        sfile = sock.makefile()
+        chunk = sfile.readlines()
+        self.putEvent({'header':{},'data':''.join(chunk)}, self.queuepool.outbox)
+        sfile.close()
+        sock.close()
+
+    def __handleNextLine(self, sock, address):
+        self.logging.debug("Connection from %s."%(str(address[0])))
+        sfile = sock.makefile()
+        switcher = self.getContextSwitcher(100)
+
+        while switcher():
+            chunk = sfile.readline()
+
+            if not chunk:
+                self.logging.debug("Client %s disconnected."%(str(address[0])))
+                break
+            else:
+                self.putEvent({'header':{},'data':chunk}, self.queuepool.outbox)
+
+
+    def __handleDelimiter(self, sock, address):
+        self.logging.debug("Connection from %s."%(str(address[0])))
         sfile = sock.makefile()
         data=[]
+        switcher = self.getContextSwitcher(100)
 
-        if self.delimiter == None:
-            chunk = sfile.readlines()
-            self.putEvent({'header':{},'data':''.join(chunk)}, self.queuepool.outbox)
-        else:
-            while self.loop():
-                chunk = sfile.readline()
+        while switcher():
+            chunk = sfile.readline()
 
-                if chunk == "":
-                    if len(data) > 0:
-                        self.putEvent({'header':{},'data':''.join(data)}, self.queuepool.outbox)
-                    break
-                else:
-                    if chunk.endswith(self.delimiter):
-                        chunk=chunk.rstrip(self.delimiter)
-                        if chunk != '':
-                            data.append(chunk)
-                        if len(data) > 0:
-                            self.putEvent({'header':{},'data':''.join(data)}, self.queuepool.outbox)
-                            data=[]
-                    else:
-                        data.append(chunk)
+            if not chunk:
+                if len(data) > 0:
+                    self.putEvent({'header':{},'data':''.join(data)}, self.queuepool.outbox)
+                self.logging.debug("Client %s disconnected."%(str(address[0])))
+                break
+
+            elif chunk.endswith(self.delimiter):
+                chunk=chunk.rstrip(self.delimiter)
+                if chunk != '':
+                    data.append(chunk)
+                    self.putEvent({'header':{},'data':''.join(data)}, self.queuepool.outbox)
+                    data=[]
+            else:
+                data.append(chunk)
+
         sfile.close()
         sock.close()
 
