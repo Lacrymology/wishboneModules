@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#       gearman.py
+#       input_gearman.py
 #
 #       Copyright 2013 Jelle Smet development@smetj.net
 #
@@ -80,6 +80,7 @@ class Gearman(Actor):
     def consume(self, gearman_worker, gearman_job):
         decrypted = self.decrypt(gearman_job.data)
         self.putEvent({"header":{}, "data":decrypted}, self.queuepool.outbox)
+        return decrypted
 
     def __encryptedJob (self, data):
         return self.cipher.decrypt(base64.b64decode(data))
