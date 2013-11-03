@@ -32,7 +32,7 @@ VERSION = "0.1"
 FILE = "wb_input_gearman/input_gearman.py"
 AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
-INSTALL_REQUIRES= [ ]
+INSTALL_REQUIRES= [ "gearman", "pycrypto" ]
 ENTRY_POINTS={
     "wishbone.input": [
         "gearman = wb_input_gearman.input_gearman:Gearman"
