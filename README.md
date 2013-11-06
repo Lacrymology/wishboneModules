@@ -1,7 +1,8 @@
 wishboneModules
 ===============
 
-A collection of Wishbone Modules
+A collection of Wishbone Modules.
+This repository is a temporary incubator space.
 
 
 Input modules
@@ -30,6 +31,10 @@ Output modules
 ==============
 
 - wb_output_amqp
+- wb_output_elasticsearch
+- wb_output_email
 - wb_output_mongodb
+- wb_output_mqtt
 - wb_output_tcp
+- wb_output_udp
 - wb_output_uds
