@@ -75,7 +75,9 @@ class MQTT(Actor):
     '''
 
     def __init__(self, name, client_id=None, host="127.0.0.1", port=1883, keepalive=60, success=False, failed=False):
-        Actor.__init__(self, name)
+        Actor.__init__(self, name, setupbasic=False)
+        self.createQueue("inbox")
+        self.registerConsumer(self.consume,self.queuepool.inbox)
         self.name=name
         self.client_id=client_id
         self.host=host
@@ -103,10 +105,12 @@ class MQTT(Actor):
     def consume(self, event):
         try:
             self.__client.publish(event["header"][self.name]["topic"], str(event["data"]), 0)
+
             self.doSuccess(event)
         except KeyError as err:
             self.logging.err("Event did not have the required header key: %s. Purged."%(err))
         except Exception as err:
+            self.logging.err("Failed to submit message to broker.  Reason: %s"%(err))
             self.doFailed(event)
             self.__connect.set()
             self.queuepool.inbox.putLock()
