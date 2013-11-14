@@ -12,6 +12,7 @@ Input modules
 - wb_input_dictgenerator
 - wb_input_gearman
 - wb_input_generator
+- wb_input_httprequest
 - wb_input_namedpipe
 - wb_input_tcp
 - wb_input_udp
