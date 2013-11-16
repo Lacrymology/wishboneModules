@@ -41,7 +41,7 @@ class HTTPRequest(Actor):
         - url (str):        The URL to fetch (including port).
                             Default: http://localhost
 
-        - method(str):      The method to use. (GET, POST, PUT)
+        - method(str):      The method to use. (GET)
                             Default: GET
 
         - data(str):        The string to submit in case of POST, PUT
@@ -55,6 +55,7 @@ class HTTPRequest(Actor):
 
 
         - interval(int):    The interval in seconds between each request.
+                            Default: 60
 
 
     Queues:
@@ -89,12 +90,17 @@ class HTTPRequest(Actor):
     def scheduler(self):
         while self.loop():
             event={"header":{self.name:{}}, "data":None}
-            r = requests.get(self.url, auth=(self.username, self.password))
-            event["header"][self.name]["status_code"] = r.status_code
-            event["data"]=r.text
             try:
-                self.queuepool.outbox.put(event)
-                sleep(self.interval)
-            except QueueLocked:
-                self.queuepool.outbox.waitUntilPutAllowed()
+                r = requests.get(self.url, auth=(self.username, self.password))
+            except Exception as err:
+                self.logging.warn("Problem requesting resource.  Reason: %s"%(err))
+                self.sleep(1)
+            else:
+                event["header"][self.name]["status_code"] = r.status_code
+                event["data"]=r.text
+                try:
+                    self.queuepool.outbox.put(event)
+                    sleep(self.interval)
+                except QueueLocked:
+                    self.queuepool.outbox.waitUntilPutAllowed()
 

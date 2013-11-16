@@ -14,7 +14,7 @@ Parameters:
     - url (str):        The URL to fetch (including port).
                         Default: http://localhost
 
-    - method(str):      The method to use. (GET, POST, PUT)
+    - method(str):      The method to use. (GET)
                         Default: GET
 
     - data(str):        The string to submit in case of POST, PUT
@@ -28,6 +28,7 @@ Parameters:
 
 
     - interval(int):    The interval in seconds between each request.
+                        Default: 60
 
 
 Queues:
