@@ -11,8 +11,9 @@ Parameters:
 
     - name (str):       The instance name.
 
-    - url (str):        The URL to fetch (including port).
+    - url (str/list):   The URL to fetch (including port).
                         Default: http://localhost
+                        When a list, will process all urls defined.
 
     - method(str):      The method to use. (GET)
                         Default: GET

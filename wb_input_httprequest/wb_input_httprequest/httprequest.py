@@ -38,8 +38,9 @@ class HTTPRequest(Actor):
 
         - name (str):       The instance name.
 
-        - url (str):        The URL to fetch (including port).
+        - url (str/list):   The URL to fetch (including port).
                             Default: http://localhost
+                            When a list, will process all urls defined.
 
         - method(str):      The method to use. (GET)
                             Default: GET
@@ -82,16 +83,20 @@ class HTTPRequest(Actor):
         self.interval=interval
 
     def preHook(self):
-        spawn(self.scheduler)
+        if isinstance(self.url, list):
+            for url in self.url:
+                spawn(self.scheduler, url)
+        else:
+            spawn(self.scheduler, self.url)
 
     def consume(self, event):
         pass
 
-    def scheduler(self):
+    def scheduler(self, url):
         while self.loop():
             event={"header":{self.name:{}}, "data":None}
             try:
-                r = requests.get(self.url, auth=(self.username, self.password))
+                r = requests.get(url, auth=(self.username, self.password))
             except Exception as err:
                 self.logging.warn("Problem requesting resource.  Reason: %s"%(err))
                 self.sleep(1)
