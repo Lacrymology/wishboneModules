@@ -24,7 +24,7 @@
 
 from wishbone import Actor
 from wishbone.errors import QueueLocked
-from gevent import spawn, sleep
+from gevent import spawn, sleep, event
 from gevent import monkey;monkey.patch_all
 import requests
 
@@ -81,6 +81,8 @@ class HTTPRequest(Actor):
         self.username=username
         self.password=password
         self.interval=interval
+        self.throttle=event.Event()
+        self.throttle.set()
 
     def preHook(self):
         if isinstance(self.url, list):
@@ -94,6 +96,7 @@ class HTTPRequest(Actor):
 
     def scheduler(self, url):
         while self.loop():
+            self.throttle.wait()
             event={"header":{self.name:{}}, "data":None}
             try:
                 r = requests.get(url, auth=(self.username, self.password))
@@ -108,4 +111,10 @@ class HTTPRequest(Actor):
                     sleep(self.interval)
                 except QueueLocked:
                     self.queuepool.outbox.waitUntilPutAllowed()
+
+    def enableThrottling(self):
+        self.throttle.clear()
+
+    def disableThrottling(self):
+        self.throttle.set()
 
