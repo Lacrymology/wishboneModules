@@ -105,6 +105,7 @@ class HTTPRequest(Actor):
                 sleep(1)
             else:
                 event["header"][self.name]["status_code"] = response.status_code
+                event["header"][self.name]["url"] = url
                 event["data"]=response.text
                 try:
                     self.queuepool.outbox.put(event)
