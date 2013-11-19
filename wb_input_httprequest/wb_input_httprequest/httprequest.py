@@ -26,7 +26,7 @@ from wishbone import Actor
 from wishbone.errors import QueueLocked
 from gevent import spawn, sleep, event
 from gevent import monkey;monkey.patch_all
-import requests
+import grequests
 
 
 class HTTPRequest(Actor):
@@ -99,10 +99,11 @@ class HTTPRequest(Actor):
             self.throttle.wait()
             event={"header":{self.name:{}}, "data":None}
             try:
-                r = requests.get(url, auth=(self.username, self.password))
+                r = grequests.get(url, auth=(self.username, self.password))
+                r.send()
             except Exception as err:
                 self.logging.warn("Problem requesting resource.  Reason: %s"%(err))
-                self.sleep(1)
+                sleep(1)
             else:
                 event["header"][self.name]["status_code"] = r.status_code
                 event["data"]=r.text
