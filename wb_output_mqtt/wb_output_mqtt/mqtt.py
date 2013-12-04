@@ -101,11 +101,11 @@ class MQTT(Actor):
 
     def preHook(self):
         spawn(self.connectionMonitor)
+        spawn(self.loopMonitor)
 
     def consume(self, event):
         try:
             self.__client.publish(event["header"][self.name]["topic"], str(event["data"]), 0)
-
             self.doSuccess(event)
         except KeyError as err:
             self.logging.err("Event did not have the required header key: %s. Purged."%(err))
@@ -114,33 +114,31 @@ class MQTT(Actor):
             self.doFailed(event)
             self.__connect.set()
             self.queuepool.inbox.putLock()
+
+    def loopMonitor(self):
+        while self.loop():
+            if self.__client.loop() != 0:
+                self.queuepool.inbox.putLock()
+                self.__connect.set()
+            else:
+                self.queuepool.inbox.putUnlock()
+            sleep(1)
+
     def connectionMonitor(self):
-        '''A bit of a nasty approach.  Would be cleaner if Mosquitto.connect() had a timeout.'''
+
+        self.__client=mosquitto.Mosquitto(self.client_id, clean_session=True)
 
         while self.loop():
             self.__connect.wait()
-            while self.loop():
-                instance = spawn(self.setupConnection)
-                sleep(1)
-                if instance.ready and instance.get() == True:
-                    self.logging.info("Connected to %s:%s"%(self.host, self.port))
-                    self.__connect.clear()
-                    self.queuepool.inbox.putUnlock()
-                    break
-                elif instance.get() != True:
-                    self.logging.warn("Failed to connect to %s:%s.  Reason: %s"%(self.host, self.port, instance.get()))
-                    instance.kill()
-                    self.logging.warn("Will reconnect in 1 second.")
+            try:
+                self.__client.connect(self.host, self.port, self.keepalive)
+                self.__connect.clear()
+            except Exception as err:
+                self.logging.err("Problem connecting to MQTT broker.  Reason: %s"%(err))
+            sleep(1)
 
-    def setupConnection(self):
-        try:
-            self.__client=mosquitto.Mosquitto(self.client_id, clean_session=True)
-            self.__client.connect(self.host, self.port, self.keepalive)
-        except Exception as err:
-            return err
-        else:
-            return True
-
+    def postHook(self):
+        self.__client.disconnect()
 
     def __doSuccess(self, event):
         self.queuepool.success.put(event)

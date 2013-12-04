@@ -28,7 +28,7 @@ import ast
 ###############################################################
 PROJECT = 'wb_output_mqtt'
 MODULE = 'MQTT'
-VERSION = "0.1"
+VERSION = "0.2"
 FILE = "wb_output_mqtt/mqtt.py"
 AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
