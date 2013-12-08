@@ -55,4 +55,4 @@ class Skeleton(Actor):
             self.queuepool.outbox.put(event)
         except QueueLocked:
             self.queuepool.inbox.rescue(event)
-            self.queuepool.outbox.waitUntillPutAllowed()
+            self.queuepool.outbox.waitUntilPutAllowed()

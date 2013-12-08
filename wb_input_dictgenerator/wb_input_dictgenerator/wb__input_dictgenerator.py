@@ -90,10 +90,9 @@ class DictGenerator(Actor):
             spawn(self.__startGeneratingNoSleep)
 
     def __startGeneratingSleep(self):
+        switcher = self.getContextSwitcher(100)
 
-        switcher = self.getContextSwitcher(100, self.loop)
-
-        while switcher.do():
+        while switcher():
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
@@ -103,8 +102,8 @@ class DictGenerator(Actor):
 
     def __startGeneratingNoSleep(self):
 
-        switcher = self.getContextSwitcher(100, self.loop)
-        while switcher.do():
+        switcher = self.getContextSwitcher(100)
+        while switcher():
             data={}
             for x in xrange(0, randint(self.min_elements,self.max_elements)):
                 data[self.generateKey()]=self.generateValue()
