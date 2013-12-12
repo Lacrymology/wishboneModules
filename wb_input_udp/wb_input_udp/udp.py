@@ -27,6 +27,7 @@ from gevent import spawn
 from gevent.queue import Queue
 from gevent.server import DatagramServer
 
+
 class UDP(DatagramServer, Actor):
     '''**A Wishbone module which handles UDP input.**
 
@@ -40,6 +41,12 @@ class UDP(DatagramServer, Actor):
 
         - port(int):        The port on which the server should listen.
                             default: 19283
+
+        - reuse_port(bool): Whether or not to set the SO_REUSEPORT socket option.
+                            Allows multiple instances to bind to the same port.
+                            Requires Linux kernel >= 3.9
+                            Default: False
+
 
 
     Queues:
@@ -59,7 +66,7 @@ class UDP(DatagramServer, Actor):
     def handle(self, data, address):
         '''Is called upon each incoming message, makes sure the data has the right Wishbone format and writes the it into self.inbox'''
 
-        self.putEvent({'header':{},'data':data}, self.queuepool.outbox)
+        self.queuepool.outbox.put({'header':{},'data':data})
 
     def start(self):
         DatagramServer.start(self)
