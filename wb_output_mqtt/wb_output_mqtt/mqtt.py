@@ -83,7 +83,7 @@ class MQTT(Actor):
         self.host=host
         self.port=port
         self.keepalive=keepalive
-        self.queuepool.inbox.putLock()
+        #self.queuepool.inbox.putLock()
         self.__connect=Event()
         self.__connect.set()
 
@@ -101,11 +101,12 @@ class MQTT(Actor):
 
     def preHook(self):
         spawn(self.connectionMonitor)
-        spawn(self.loopMonitor)
+        #spawn(self.loopMonitor)
 
     def consume(self, event):
         try:
             self.__client.publish(event["header"][self.name]["topic"], str(event["data"]), 0)
+            self.__client.loop()
             self.doSuccess(event)
         except KeyError as err:
             self.logging.err("Event did not have the required header key: %s. Purged."%(err))
@@ -117,12 +118,12 @@ class MQTT(Actor):
 
     def loopMonitor(self):
         while self.loop():
-            if self.__client.loop() != 0:
+            if self.__client.loop(1) != 0:
                 self.queuepool.inbox.putLock()
                 self.__connect.set()
             else:
                 self.queuepool.inbox.putUnlock()
-            sleep(1)
+            #sleep(1)
 
     def connectionMonitor(self):
 
