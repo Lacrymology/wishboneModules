@@ -97,8 +97,10 @@ class HTTP(Actor):
             self.queue_mapping[path]=getattr(self.queuepool, queue)
 
     def __serve(self):
-        #server = pywsgi.WSGIServer((self.address, self.port), self.consume, keyfile=self.keyfile, certfile=self.certfile)
-        self.__server = pywsgi.WSGIServer((self.address, self.port), self.consume, log=None)
+        if self.keyfile != None and self.certfile != None:
+            self.__server = pywsgi.WSGIServer((self.address, self.port), self.consume, keyfile=self.keyfile, certfile=self.certfile)
+        else:
+            self.__server = pywsgi.WSGIServer((self.address, self.port), self.consume, log=None)
         self.__server.start()
         self.logging.info("Serving on %s:%s"%(self.address, self.port))
         self.block()
