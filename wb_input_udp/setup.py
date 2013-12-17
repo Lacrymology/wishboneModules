@@ -28,7 +28,7 @@ import ast
 ###############################################################
 PROJECT = 'wb_input_udp'
 MODULE = 'UDP'
-VERSION = "0.1"
+VERSION = "0.2.1"
 FILE = "wb_input_udp/udp.py"
 AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
