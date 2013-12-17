@@ -1,7 +1,7 @@
 wb_output_mqtt
 ==============
 
-version: 0.1
+version: 0.2
 
 **A Wishbone output module which writes events to a MQTT broker.**
 

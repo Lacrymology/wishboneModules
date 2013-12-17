@@ -76,7 +76,7 @@ class Snappy(Actor):
             self.queuepool.outbox.put(event)
         except QueueLocked:
             self.queuepool.inbox.rescue(original_event)
-            self.queuepool.outbox.waitUntillPutAllowed()
+            self.queuepool.outbox.waitUntilPutAllowed()
 
     def __decompress(self, event):
 
@@ -93,4 +93,4 @@ class Snappy(Actor):
             self.queuepool.outbox.put(event)
         except QueueLocked:
             self.queuepool.inbox.rescue(original_event)
-            self.queuepool.outbox.waitUntillPutAllowed()
+            self.queuepool.outbox.waitUntilPutAllowed()
