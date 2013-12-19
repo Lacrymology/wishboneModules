@@ -49,6 +49,9 @@ class HTTP(Actor):
         - certfile(str):    In case of SSL the location of the certfile to use.
                             Default: None
 
+        - delimiter(str):   The delimiter between multiple events.
+                            Default: None
+
     Queues:
 
         - outbox:   Events coming from the outside world and submitted to /
@@ -62,30 +65,57 @@ class HTTP(Actor):
     '''
 
 
-    def __init__(self, name, address="0.0.0.0", port=10080, keyfile=None, certfile=None, resources=[{"/":"outbox"}]):
+    def __init__(self, name, address="0.0.0.0", port=10080, keyfile=None, certfile=None, delimiter=None):
         Actor.__init__(self, name)
         self.name=name
         self.address=address
         self.port=port
         self.keyfile=keyfile
         self.certfile=certfile
+        self.delimiter=delimiter
+
+        if self.delimiter == None:
+            self.delimit = self.__noDelimiter
+        elif self.delimiter == '\n':
+            self.delimit = self.__newLineDelimiter
+        else:
+            self.delimit = self.__otherDelimiter
 
     def preHook(self):
         spawn(self.__serve)
 
     def consume(self, env, start_response):
-
         try:
-            for line in env["wsgi.input"].readlines():
+            for line in self.delimit(env["wsgi.input"]):
                 if env['PATH_INFO'] == '/':
                     self.queuepool.outbox.put({"header":{}, "data":line})
                 else:
                     getattr(self.queuepool, env['PATH_INFO'].lstrip('/')).put({"header":{}, "data":line})
-            start_response('200 OK', [('Content-Type', 'text/html')])
+            start_response('200 OK', [('Content-Type', 'text/plain')])
             return "OK"
         except Exception as err:
             start_response('404 Not Found', [('Content-Type', 'text/html')])
             return "A problem occurred processing your request. Reason: %s"%(err)
+
+    def __newLineDelimiter(self, data):
+        for line in data.readlines():
+            yield line[:-len(self.delimiter)]
+
+    def __noDelimiter(self, data):
+        return ["".join(data.readlines())]
+
+    def __otherDelimiter(self, data):
+        r=[]
+        for line in data.readlines():
+            if line.rstrip("\n").endswith(self.delimiter):
+                line = line.rstrip("\n")[:-len(self.delimiter)]
+                if line != "\n":
+                    r.append(line)
+                yield "".join(r)
+                r=[]
+            else:
+                r.append(line)
+        yield "\n".join(r)
 
     def __setupQueues(self):
         return

@@ -1,7 +1,7 @@
 wb_input_udp
 ============
 
-version: 0.1
+version: 0.2.1
 
 **A Wishbone module which handles UDP input.**
 

@@ -24,6 +24,9 @@ Parameters:
     - certfile(str):    In case of SSL the location of the certfile to use.
                         Default: None
 
+    - delimiter(str):   The delimiter between multiple events.
+                        Default: None
+
 Queues:
 
     - outbox:   Events coming from the outside world and submitted to /
