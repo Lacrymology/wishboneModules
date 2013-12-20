@@ -23,7 +23,7 @@
 #
 
 from wishbone import Actor
-from gevent import spawn, sleep
+from gevent import spawn, sleep, get_hub, event
 #from gevent import monkey;monkey.patch_all()
 import os
 
@@ -36,6 +36,7 @@ class NamedPipe(Actor):
     Parameters:
 
         - name (str):       The instance name when initiated.
+
         - path (str):       The absolute path of the named pipe.
 
     Queues:
@@ -48,34 +49,42 @@ class NamedPipe(Actor):
         self.createQueue("outbox")
         self.name=name
         self.path = path
+        self.__data = event.Event()
+        self.__data.clear()
 
     def preHook(self):
 
         os.mkfifo ( self.path )
         self.logging.info('Named pipe %s created.'%(self.path))
-        self.fd = os.open(self.path, os.O_RDONLY|os.O_NONBLOCK)
         spawn(self.serve)
+        spawn(self.monitor)
 
     def serve(self):
         '''Reads the named pipe.'''
 
-        #todo(smetj):   ideally hub.loop.stat should be used as a watcher but
-        #               that is not working in pypy for the moment.
-
         self.logging.info('Started.')
-
+        fd = os.open(self.path, os.O_RDWR|os.O_NONBLOCK)
         switcher = self.getContextSwitcher(100)
         while switcher():
-            try:
-                lines = os.read(self.fd, 4096).splitlines()
-            except OSError:
-                pass
-            else:
-                if len(lines) > 0:
-                    for line in  lines:
-                        self.putEvent({'header':{},'data':line}, self.queuepool.outbox)
-                else:
+
+            while switcher():
+                try:
+                    self.__data.wait()
+                    lines=os.read(fd, 4096).splitlines()
+                    if len(lines) == 0:
+                        self.__data.clear()
+                    else:
+                        print lines
+                except OSError:
                     sleep(0.1)
+
+    def monitor(self):
+
+        hub = get_hub()
+        watcher = hub.loop.stat(self.path)
+        while self.loop():
+            hub.wait(watcher)
+            self.__data.set()
 
     def postHook(self):
         #self.fd.close()

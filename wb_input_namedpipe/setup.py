@@ -28,7 +28,7 @@ import ast
 ###############################################################
 PROJECT = 'wb_input_namedpipe'
 MODULE = 'NamedPipe'
-VERSION = "0.1"
+VERSION = "0.2"
 FILE = "wb_input_namedpipe/namedpipe.py"
 AUTHOR = "Jelle Smet"
 URL = "https://github.com/smetj/wishboneModules"
