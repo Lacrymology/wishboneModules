@@ -59,6 +59,10 @@ class NamedPipe(Actor):
         spawn(self.serve)
         spawn(self.monitor)
 
+    def consume(self, event):
+        for line in self.delimit(event):
+            print {"header":{}, "data":line}
+
     def serve(self):
         '''Reads the named pipe.'''
 
@@ -66,19 +70,18 @@ class NamedPipe(Actor):
         fd = os.open(self.path, os.O_RDWR|os.O_NONBLOCK)
         switcher = self.getContextSwitcher(100)
         while switcher():
-
-            while switcher():
-                try:
-                    self.__data.wait()
-                    lines=os.read(fd, 4096).splitlines()
-                    if len(lines) == 0:
-                        self.__data.clear()
-                    else:
-                        print lines
-                except OSError:
-                    sleep(0.1)
+            try:
+                self.__data.wait()
+                lines=os.read(fd, 4096).splitlines()
+                if len(lines) == 0:
+                    self.__data.clear()
+                else:
+                    self.consume(lines)
+            except OSError:
+                pass
 
     def monitor(self):
+        '''Monitors activity on the named pipe.'''
 
         hub = get_hub()
         watcher = hub.loop.stat(self.path)
