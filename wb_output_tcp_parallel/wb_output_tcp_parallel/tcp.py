@@ -26,6 +26,7 @@ from wishbone import Actor
 from wishbone.tools import Measure
 from gevent import socket, sleep, spawn
 from gevent.event import Event
+import thread
 
 class TCP(Actor):
     '''**A Wishbone IO module which writes data to a TCP socket.**
@@ -100,12 +101,13 @@ class TCP(Actor):
             try:
                 s = self.getSocket()
                 s.sendall(str(data) + self.delimiter)
-                return
+                self.logging.info("Data sent")
+                thread.exit()
             except Exception, e:
                 self.logging.warn("Problem sending data: %s" % e)
 
     def consume(self, event):
-        spawn(self.sendEvent, event)
+        thread.start_new_thread(self.sendEvent, (event,))
 
     def getSocket(self):
         '''
