@@ -26,7 +26,7 @@ from wishbone import Actor
 from wishbone.tools import Measure
 from gevent import socket, sleep, spawn
 from gevent.event import Event
-import thread
+from select import select
 
 class TCP(Actor):
     '''**A Wishbone IO module which writes data to a TCP socket.**
@@ -88,6 +88,32 @@ class TCP(Actor):
         self.timeout=timeout
         self.delimiter=delimiter
 
+        self.sockets = []
+        self.data = {}
+        self.send = Event()
+
+    def preHook(self):
+        spawn(self.runSockets)
+
+    def runSockets(self):
+        while self.loop():
+            self.send.wait()
+            print "got send"
+            _, write, _ = select([], self.sockets, [], 0)
+            self.logging.info("have %d sockets to write" % len(write))
+            for s in write:
+                try:
+                    s.send(self.data[s])
+                    self.logging.info("Data sent")
+                except Exception, e:
+                    self.logging.warn("Problem sending data: %s" % e)
+                finally:
+                    self.sockets.remove(s)
+                    del self.data[s]
+                    s.close()
+            print "clear send"
+            self.send.clear()
+
     def sendEvent(self, event):
         """
         Short-lived Greenlet that sends one event through a newly created tcp
@@ -97,33 +123,24 @@ class TCP(Actor):
         if isinstance(data, list):
             data = self.delimiter.join(data)
 
-        while self.loop():
-            try:
-                s = self.getSocket()
-                s.sendall(str(data) + self.delimiter)
-                self.logging.info("Data sent")
-                thread.exit()
-            except Exception, e:
-                self.logging.warn("Problem sending data: %s" % e)
+        s = self.getSocket()
+        self.sockets.append(s)
+        self.data[s] = data
+        self.send.set()
 
     def consume(self, event):
-        thread.start_new_thread(self.sendEvent, (event,))
+        self.sendEvent(event)
 
     def getSocket(self):
         '''
         Returns a socket object
         '''
-
         while self.loop():
+            s = socket.socket()
+            s.setblocking(0)
             try:
-                s = socket.socket()
-                s.settimeout(self.timeout)
                 s.connect((self.host, self.port))
-                self.logging.info("Connected to %s port %s."%(self.host, self.port))
-                return s
-            except Exception as err:
-                self.logging.warn("Failed to connect to %s port %s. Reason: "
-                                  "%s. Retry in 10 milliseconds." % (self.host,
-                                                                    self.port,
-                                                                    err))
-                sleep(1)
+            except Exception:
+                pass
+            self.logging.info("Connecting to %s port %s."%(self.host, self.port))
+            return s
